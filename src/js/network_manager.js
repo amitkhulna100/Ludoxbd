@@ -7,8 +7,8 @@
  */
 
 const AUTHORITATIVE_SERVER_CONFIG = {
-    // 1. Primary Render/Cloudflare Cloud WebSocket Gateway
-    cloudWsUrl: 'wss://ludo-x-bd-server.onrender.com',
+    // 1. Primary Render Production Cloud WebSocket Server (Authorized Single Source of Truth)
+    cloudWsUrl: 'wss://ludoxbd.onrender.com',
 
     // 2. Custom Tunnel / Server URL saved by user in Settings or Dev
     get customUrl() {

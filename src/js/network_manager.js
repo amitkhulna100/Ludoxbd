@@ -68,6 +68,7 @@ class NetworkManager {
         this._matchmakingRaceCheckTimer = null;
         this._internalMatchmakingTimer = null;
         this._lobbyDiscoveryTimer = null;
+        this._pendingServerAction = null;
 
         // Authoritative Two-Stage 15-Second Turn Timer State Machine
         this.currentTurnSeq = 0;
@@ -355,6 +356,16 @@ class NetworkManager {
 
                 this.sendToServer('SET_PROFILE', { name: myName, avatar: myAvatar });
                 this.sendToServer('GET_BOARDS');
+
+                // Dispatch any queued server action (e.g. JOIN_BOARD, CREATE_PRIVATE_ROOM, JOIN_PRIVATE_ROOM)
+                if (this._pendingServerAction) {
+                    const action = this._pendingServerAction;
+                    this._pendingServerAction = null;
+                    setTimeout(() => {
+                        console.log(`[Authoritative Server] Dispatching queued action:`, action);
+                        this.sendToServer(action.type, action.payload);
+                    }, 120);
+                }
 
                 // Ping every 15s to measure live latency
                 if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
@@ -1284,10 +1295,11 @@ class NetworkManager {
     // ============================================================
 
     /**
-     * Deduct entry fee idempotently (1,000 coins once per match)
+     * Deduct entry fee idempotently and sync with Supabase
      */
-    deductEntryFee(roomCode) {
-        const fee = 1000;
+    deductEntryFee(roomCode, feeAmount = 500) {
+        const fee = (feeAmount !== undefined && feeAmount !== null) ? feeAmount : 500;
+        if (fee <= 0) return true;
         const feeTxKey = `lx_fee_${roomCode}`;
         if (localStorage.getItem(feeTxKey)) {
             console.log(`[Economy] Entry fee already deducted for room ${roomCode}. Skipping.`);
@@ -1309,8 +1321,18 @@ class NetworkManager {
 
         if (typeof ui.addCoins === 'function') {
             ui.addCoins(-fee);
+        } else if (ui?.userStats) {
+            ui.userStats.coins -= fee;
+            localStorage.setItem('lx_coins', String(ui.userStats.coins));
+            if (typeof ui.updateCoinsDisplay === 'function') ui.updateCoinsDisplay();
         }
-        console.log(`[Economy] Deducted ${fee} coins for room ${roomCode} (txKey: ${feeTxKey})`);
+
+        // Real-time Cloud Save: Sync with Supabase Database!
+        if (window.supabaseClient && ui?.userStats) {
+            window.supabaseClient.syncProfile(ui.userStats, ui.inventory, true);
+        }
+
+        console.log(`[Economy] Deducted ${fee} coins for room ${roomCode} and synced to Supabase`);
         return true;
     }
 
@@ -1373,6 +1395,21 @@ class NetworkManager {
         console.log(`[Economy] Awarding rank ${rank} prize of ${prizeCoins} coins to ${myCol} (idempotent key: ${rewardTxKey})`);
         if (typeof ui.addCoins === 'function') {
             ui.addCoins(prizeCoins);
+        } else if (ui?.userStats) {
+            ui.userStats.coins += prizeCoins;
+            localStorage.setItem('lx_coins', String(ui.userStats.coins));
+            if (typeof ui.updateCoinsDisplay === 'function') ui.updateCoinsDisplay();
+        }
+
+        // Real-time Cloud Save: Sync with Supabase Database!
+        if (window.supabaseClient && ui?.userStats) {
+            window.supabaseClient.recordMatchResult({
+                roomCode: roomCode,
+                isWinner: (rank === 1),
+                coinsWon: prizeCoins,
+                mode: 'ONLINE_MULTIPLAYER'
+            });
+            window.supabaseClient.syncProfile(ui.userStats, ui.inventory, false);
         }
         this.showToast(`🎉 অভিনন্দন! আপনি ${rank === 1 ? '১ম' : '২য়'} স্থান অর্জন করে ${prizeCoins.toLocaleString()} কয়েন জিতেছেন!`);
     }
@@ -1442,16 +1479,17 @@ class NetworkManager {
     /**
      * Unified Global Online Match Entry Point
      */
-    async joinUnifiedOnlineMatch() {
-        console.log('[Matchmaking] Request to join unified online match');
+    async joinUnifiedOnlineMatch(boardId = 'dhaka') {
+        console.log('[Matchmaking] Request to join unified online match:', boardId);
         const ui = this.getUI();
         let currentCoins = ui?.userStats?.coins || 0;
-        if (currentCoins < 1000) {
+        if (currentCoins < 500) {
             if (ui?.userStats) {
                 ui.userStats.coins = 5050;
                 localStorage.setItem('lx_coins', '5050');
             }
             this.showToast('🎁 বোনাস: অনলাইন ম্যাচ খেলতে ফ্রি ৫,০০০ কয়েন দেওয়া হলো!');
+            window.supabaseClient?.syncProfile(ui.userStats, ui.inventory, true);
         }
 
         // Clear any old active match session so player enters cleanly
@@ -1463,23 +1501,31 @@ class NetworkManager {
             }
         }
 
-        // Open Waiting Room Modal immediately
+        const targetBoardId = (typeof boardId === 'string' && boardId) ? boardId : 'dhaka';
+        const boardDef = (this.boards && this.boards.find(b => b.id === targetBoardId)) || {
+            id: 'dhaka',
+            name: 'ঢাকা এরিনা (Dhaka Arena)',
+            fee: 500
+        };
+
+        // Open Waiting Room Modal immediately with 15s server countdown
         this.openWaitingRoom({
-            boardId: 'unified_online',
-            boardName: 'অনলাইন মাল্টিপ্লেয়ার',
-            entryFee: 1000,
-            remainingSeconds: 30,
+            boardId: boardDef.id,
+            boardName: boardDef.name,
+            entryFee: boardDef.fee,
+            remainingSeconds: 15,
             players: []
         });
 
-        // Ensure WebSocket is connected
+        // Authoritative Cloud Server Mode (Render)
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('JOIN_BOARD', { boardId: boardDef.id });
+            return;
+        }
+
+        // Queue action and connect immediately
+        this._pendingServerAction = { type: 'JOIN_BOARD', payload: { boardId: boardDef.id } };
         this.connect();
-
-        // Join global channel for presence
-        this.joinTopic('realtime:ludo_global_matchmaking');
-
-        // Execute authoritative database-backed matchmaking
-        await this.executeUnifiedMatchmaking();
     }
 
     /**
@@ -1870,42 +1916,22 @@ class NetworkManager {
 
 
     createPrivateRoom(playerCount = 4) {
+        const count = playerCount || 4;
+        this.openWaitingRoom({
+            boardId: 'private',
+            boardName: 'বন্ধুদের সাথে প্রাইভেট রুম',
+            entryFee: 0,
+            remainingSeconds: 15,
+            players: []
+        });
+
         if (this.isAuthoritativeServerConnected()) {
-            this.sendToServer('CREATE_PRIVATE_ROOM', { playerCount: playerCount || 4 });
+            this.sendToServer('CREATE_PRIVATE_ROOM', { playerCount: count });
             return;
         }
 
-        const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const inputCodeEl = document.getElementById('inputRoomCode');
-        if (inputCodeEl) inputCodeEl.value = roomCode;
-
-        this.showToast(`🔑 প্রাইভেট রুম তৈরি হয়েছে! কোড: ${roomCode}`);
-        const ui = this.getUI();
-
-        this.myColor = 'red';
-        this.isHost = true;
-
-        const myPlayer = {
-            id: this.clientId,
-            name: ui?.userStats?.name || 'আপনি (You)',
-            avatar: ui?.userStats?.avatar || 'king',
-            color: 'red',
-            isHost: true
-        };
-
-        this.openWaitingRoom({
-            boardId: `room_${roomCode}`,
-            roomCode: roomCode,
-            isPrivate: true,
-            boardName: `প্রাইভেট রুম #${roomCode}`,
-            entryFee: 0,
-            remainingSeconds: 30,
-            players: [myPlayer]
-        });
-
-        const topic = `realtime:ludo_room_${roomCode}`;
-        this.joinTopic(topic);
-        this.startInvisibleMatchTimer(roomCode, 30000);
+        this._pendingServerAction = { type: 'CREATE_PRIVATE_ROOM', payload: { playerCount: count } };
+        this.connect();
     }
 
     joinPrivateRoom(roomCode) {
@@ -1915,54 +1941,32 @@ class NetworkManager {
             return;
         }
 
-        if (this.isAuthoritativeServerConnected()) {
-            this.sendToServer('JOIN_PRIVATE_ROOM', { roomCode: code });
-            return;
-        }
-
-        const ui = this.getUI();
-        this.myColor = null;
-        this.isHost = false;
-
-        const myPlayer = {
-            id: this.clientId,
-            name: ui?.userStats?.name || 'আপনি (You)',
-            avatar: ui?.userStats?.avatar || 'king'
-        };
-
         this.openWaitingRoom({
             boardId: `room_${code}`,
             roomCode: code,
             isPrivate: true,
             boardName: `প্রাইভেট রুম #${code}`,
             entryFee: 0,
-            remainingSeconds: 30,
+            remainingSeconds: 15,
             players: []
         });
 
-        const topic = `realtime:ludo_room_${code}`;
-        this.joinTopic(topic);
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('JOIN_PRIVATE_ROOM', { roomCode: code });
+            return;
+        }
 
-        setTimeout(() => {
-            this.broadcast('REQUEST_JOIN_LOBBY', { player: myPlayer });
-        }, 500);
+        this._pendingServerAction = { type: 'JOIN_PRIVATE_ROOM', payload: { roomCode: code } };
+        this.connect();
     }
 
     // Backward-compatibility aliases for legacy calls
-    joinBoard(boardId, entryFee = 1000) {
-        if (this.isAuthoritativeServerConnected()) {
-            this.sendToServer('JOIN_BOARD', { boardId: boardId || 'dhaka' });
-            return;
-        }
-        this.joinUnifiedOnlineMatch();
+    joinBoard(boardId, entryFee = 500) {
+        this.joinUnifiedOnlineMatch(boardId || 'dhaka');
     }
 
     requestQuickMatch(playerCount = 4) {
-        if (this.isAuthoritativeServerConnected()) {
-            this.sendToServer('JOIN_BOARD', { boardId: 'dhaka' });
-            return;
-        }
-        this.joinUnifiedOnlineMatch();
+        this.joinUnifiedOnlineMatch('dhaka');
     }
 
     startInternalMatchmaking(board) {
@@ -2778,9 +2782,20 @@ class NetworkManager {
         this.isOnlineMatch = true;
         this.currentRoom = matchData;
 
-        // Deduct entry fee idempotently
+        // Deduct entry fee idempotently and sync with Supabase
         if (matchData.roomCode) {
-            this.deductEntryFee(matchData.roomCode);
+            this.deductEntryFee(matchData.roomCode, matchData.entryFee || 500);
+            if (window.supabaseClient) {
+                window.supabaseClient.request('/rest/v1/match_history', {
+                    method: 'POST',
+                    body: {
+                        room_code: matchData.roomCode,
+                        mode: 'ONLINE_MULTIPLAYER',
+                        players_data: matchData.players || [],
+                        created_at: new Date().toISOString()
+                    }
+                }).catch(() => {});
+            }
         }
 
         // Close all modals
@@ -3065,6 +3080,11 @@ class NetworkManager {
         const ui = this.getUI();
         if (!ui || !ui.engine) return;
 
+        // Ensure targetState and targetStepCount aliases exist
+        if (!data.targetState && data.tokenState) data.targetState = data.tokenState;
+        if (data.targetStepCount === undefined && data.stepCount !== undefined) data.targetStepCount = data.stepCount;
+        if (!data.dice && data.diceValue) data.dice = data.diceValue;
+
         // Synchronize mover turn & dice value
         if (ui.engine.players && data.color) {
             const moverIdx = ui.engine.players.findIndex(p => p.id === data.color);
@@ -3079,6 +3099,26 @@ class NetworkManager {
 
         if (data.color !== this.myColor) {
             ui.executeMove(data.tokenId, true, data.color, data);
+        } else {
+            // Reconcile board snapshot for local mover as well
+            if (Array.isArray(data.boardSnapshot) && ui.engine && ui.engine.players) {
+                data.boardSnapshot.forEach(savedP => {
+                    const liveP = ui.engine.players.find(p => p.id === savedP.id);
+                    if (liveP && Array.isArray(savedP.tokens)) {
+                        if (savedP.finishedTokens !== undefined) liveP.finishedTokens = savedP.finishedTokens;
+                        savedP.tokens.forEach(savedT => {
+                            const liveT = liveP.tokens.find(t => t.id === savedT.id);
+                            if (liveT) {
+                                liveT.state = savedT.state;
+                                liveT.stepCount = (savedT.stepCount !== undefined ? savedT.stepCount : (savedT.step || 0));
+                                liveT.trackIndex = savedT.trackIndex;
+                            }
+                        });
+                    }
+                });
+                ui.updatePlayerPods();
+                ui.render();
+            }
         }
         setTimeout(() => this.saveActiveMatchBoardState(), 400);
     }
@@ -3190,6 +3230,10 @@ class NetworkManager {
 
         const remMs = Math.max(0, this.stageDeadlineMs - Date.now());
         this.stageTimeoutId = setTimeout(() => {
+            if (this.isAuthoritativeServerConnected()) {
+                // Authoritative Render server triggers timeout authoritatively
+                return;
+            }
             if (this.isOnlineMatch && this.currentTurnSeq === turnSeq && !this.stageActionExecuted && this.currentTurnStage === 'ROLL') {
                 console.log(`[Stage A Timer] Dice roll timed out for ${color}, converting to bot and executing auto-roll...`);
                 this.convertPlayerToBot(color, null, true);
@@ -3261,6 +3305,10 @@ class NetworkManager {
 
         const remMs = Math.max(0, this.stageDeadlineMs - Date.now());
         this.stageTimeoutId = setTimeout(() => {
+            if (this.isAuthoritativeServerConnected()) {
+                // Authoritative Render server triggers timeout authoritatively
+                return;
+            }
             if (this.isOnlineMatch && this.currentTurnSeq === turnSeq && !this.stageActionExecuted && this.currentTurnStage === 'MOVE') {
                 console.log(`[Stage B Timer] Token move timed out for ${color}, converting to bot and executing auto-move...`);
                 this.convertPlayerToBot(color, null, true);

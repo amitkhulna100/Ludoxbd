@@ -358,9 +358,12 @@ class GameRoom {
             color: color,
             tokenId: tokenId,
             diceValue: this.engine.diceValue,
+            dice: this.engine.diceValue,
             stepCount: moveResult.stepCount,
+            targetStepCount: moveResult.stepCount,
             trackIndex: moveResult.trackIndex,
             tokenState: moveResult.tokenState,
+            targetState: moveResult.tokenState,
             cutOccurred: moveResult.cutOccurred,
             cutTokenInfo: moveResult.cutTokenInfo,
             cutTokens: moveResult.cutTokens,
@@ -369,7 +372,8 @@ class GameRoom {
             playerWon: moveResult.playerWon,
             gameOver: moveResult.gameOver,
             winners: moveResult.winners,
-            nextTurn: moveResult.nextTurn
+            nextTurn: moveResult.nextTurn,
+            boardSnapshot: this.engine.getStateSnapshot().players
         });
 
         if (moveResult.gameOver) {
@@ -428,9 +432,12 @@ class GameRoom {
                 color: curPlayer.color,
                 tokenId: bestTokenId,
                 diceValue: this.engine.diceValue,
+                dice: this.engine.diceValue,
                 stepCount: moveResult.stepCount,
+                targetStepCount: moveResult.stepCount,
                 trackIndex: moveResult.trackIndex,
                 tokenState: moveResult.tokenState,
+                targetState: moveResult.tokenState,
                 cutOccurred: moveResult.cutOccurred,
                 cutTokenInfo: moveResult.cutTokenInfo,
                 cutTokens: moveResult.cutTokens,
@@ -440,7 +447,8 @@ class GameRoom {
                 gameOver: moveResult.gameOver,
                 winners: moveResult.winners,
                 nextTurn: moveResult.nextTurn,
-                isAuto: true
+                isAuto: true,
+                boardSnapshot: this.engine.getStateSnapshot().players
             });
 
             if (!moveResult.gameOver) {

@@ -2812,6 +2812,10 @@ class LudoUIController {
                 this.render();
 
                 if (window.networkManager && window.networkManager.isOnlineMatch) {
+                    if (window.networkManager.isAuthoritativeServerConnected()) {
+                        // In Authoritative Server Mode: Render cloud server broadcasts TURN_CHANGED automatically!
+                        return;
+                    }
                     const isMyTurn = (window.networkManager.myColor === color);
                     const isBot = (window.networkManager.botColors && window.networkManager.botColors.includes(color));
                     const shouldAdvance = isMyTurn || isBot;
@@ -2839,6 +2843,12 @@ class LudoUIController {
                 this.isRolling = false;
                 this.setBannerText(`🎲 ${result.dice} পড়েছে!`, `রোবট (${color.toUpperCase()}) ঘুঁটি চালছে...`);
                 this.render();
+
+                if (window.networkManager && window.networkManager.isAuthoritativeServerConnected()) {
+                    // Authoritative Server Mode: Render cloud server executes bot move and broadcasts TOKEN_MOVED!
+                    // Do not execute or broadcast bot moves from client.
+                    return;
+                }
 
                 // Single Source of Execution for Bot Moves:
                 // Only local owner, or designated dynamic Bot Leader if owner is disconnected, executes and broadcasts.
@@ -3206,6 +3216,11 @@ class LudoUIController {
         // Online Multiplayer Turn Coordination
         if (isOnline) {
             window.networkManager.clearTurnTimers();
+            if (window.networkManager.isAuthoritativeServerConnected()) {
+                // In Authoritative Server Mode: Render cloud server schedules bonus turn or broadcasts TURN_CHANGED!
+                // Client does not advance turns locally.
+                return;
+            }
             if (moveRes.bonusTurn) {
                 const curPlayer = this.engine.getCurrentPlayer();
                 const isBot = (window.networkManager.botColors && window.networkManager.botColors.includes(curPlayer.id));

@@ -628,9 +628,9 @@ class LudoGameEngine {
             }
             if (!token) return null;
 
-            token.state = authoritativeData.targetState;
-            token.stepCount = authoritativeData.targetStepCount;
-            token.trackIndex = authoritativeData.trackIndex;
+            token.state = authoritativeData.targetState || authoritativeData.tokenState || token.state;
+            token.stepCount = (authoritativeData.targetStepCount !== undefined) ? authoritativeData.targetStepCount : ((authoritativeData.stepCount !== undefined) ? authoritativeData.stepCount : token.stepCount);
+            token.trackIndex = (authoritativeData.trackIndex !== undefined) ? authoritativeData.trackIndex : token.trackIndex;
 
             let tokenFinished = false;
             if (authoritativeData.targetState === 'FINISHED' && !token._countedFinished) {

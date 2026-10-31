@@ -540,6 +540,11 @@ class LudoUIController {
                     if (color !== window.networkManager.myColor) {
                         return;
                     }
+                    // Prevent touching pod/dice while in bot mode
+                    const isBot = window.networkManager.botColors && window.networkManager.botColors.includes(color);
+                    if (isBot) {
+                        return;
+                    }
                     // In online match, tapping your own pod/dice only rolls the dice during WAITING_ROLL.
                     // It MUST NEVER execute moves during SELECTING_TOKEN (moves must be tapped on the board)!
                     const player = this.engine.getCurrentPlayer();
@@ -614,6 +619,8 @@ class LudoUIController {
                 bindFastTap(diceBox, () => {
                     if (window.networkManager && window.networkManager.isOnlineMatch) {
                         if (color !== window.networkManager.myColor) return;
+                        const isBot = window.networkManager.botColors && window.networkManager.botColors.includes(color);
+                        if (isBot) return;
                     }
                     const curPlayer = this.engine ? this.engine.getCurrentPlayer() : null;
                     if (curPlayer && curPlayer.id === color && curPlayer.type === 'human' && this.engine.state === 'WAITING_ROLL') {
@@ -2819,16 +2826,55 @@ class LudoUIController {
                 return;
             }
 
-            const isMyTurn = (window.networkManager && color === window.networkManager.myColor);
+            const isLocalPlayer = (window.networkManager && color === window.networkManager.myColor);
             const isBot = (window.networkManager && window.networkManager.botColors && window.networkManager.botColors.includes(color));
             const allInYard = result.validTokens.length > 0 && result.validTokens.every(m => m.type === 'EXIT_YARD');
 
-            if (isMyTurn) {
+            if (isBot) {
+                this.isRolling = false;
+                this.setBannerText(`🎲 ${result.dice} পড়েছে!`, `রোবট (${color.toUpperCase()}) ঘুঁটি চালছে...`);
+                this.render();
+
+                // Single Source of Execution for Bot Moves:
+                // Only local owner, or designated Bot Leader if owner is disconnected, executes and broadcasts.
+                const activeHumans = window.networkManager ? ['red', 'green', 'yellow', 'blue'].filter(c => !window.networkManager.botColors.includes(c)) : [];
+                const isBotLeader = (window.networkManager && activeHumans[0] === window.networkManager.myColor);
+                const isConnected = window.networkManager ? window.networkManager.isPeerActive(color) : false;
+                const shouldExecuteAndBroadcast = isLocalPlayer || (isBotLeader && !isConnected);
+
+                if (shouldExecuteAndBroadcast) {
+                    setTimeout(() => {
+                        const bestTokenId = window.networkManager?.selectBestLegalMove(this.engine) ?? (result.validTokens[0] ? result.validTokens[0].token.id : null);
+                        if (bestTokenId !== null && bestTokenId !== undefined) {
+                            if (window.networkManager && window.networkManager.isOnlineMatch) {
+                                window.networkManager.moveToken(bestTokenId, color);
+                            }
+                            this.executeMove(bestTokenId, false, color);
+                        } else {
+                            window.networkManager?.passTurnToNext(color);
+                        }
+                    }, 350);
+                } else {
+                    // Non-executing peers wait for authoritative TOKEN_MOVED.
+                    // Fallback safety watchdog (2500ms): in case remote broadcast is lost in network, advance locally
+                    setTimeout(() => {
+                        if (this.engine.state === 'SELECTING_TOKEN' && this.engine.getCurrentPlayer().id === color) {
+                            console.log(`[Bot Move Watchdog] Remote move not received for ${color}, advancing locally`);
+                            const bestTokenId = window.networkManager?.selectBestLegalMove(this.engine) ?? (result.validTokens[0] ? result.validTokens[0].token.id : null);
+                            if (bestTokenId !== null && bestTokenId !== undefined) {
+                                this.executeMove(bestTokenId, true, color);
+                            } else {
+                                window.networkManager?.passTurnToNext(color);
+                            }
+                        }
+                    }, 2500);
+                }
+            } else if (isLocalPlayer) {
                 if (result.validTokens.length === 1 || allInYard) {
                     this.setBannerText(`🎲 ${result.dice} পড়েছে!`, allInYard ? 'ঘুঁটি ঘর থেকে বের হচ্ছে...' : 'ঘুঁটি এগিয়ে চলছে...');
                     setTimeout(() => {
                         this.isRolling = false;
-                        this.executeMove(result.validTokens[0].token.id);
+                        this.executeMove(result.validTokens[0].token.id, false, color);
                     }, 150);
                 } else {
                     this.isRolling = false;
@@ -2838,19 +2884,6 @@ class LudoUIController {
                         window.networkManager.startStageBTokenMove(color, window.networkManager.currentTurnSeq);
                     }
                 }
-            } else if (isBot) {
-                this.isRolling = false;
-                this.setBannerText(`🎲 ${result.dice} পড়েছে!`, `রোবট (${color.toUpperCase()}) ঘুঁটি চালছে...`);
-                this.render();
-                // Serverless deterministic bot move across all connected devices!
-                setTimeout(() => {
-                    const bestTokenId = window.networkManager?.selectBestLegalMove(this.engine) ?? (result.validTokens[0] ? result.validTokens[0].token.id : null);
-                    if (bestTokenId !== null && bestTokenId !== undefined) {
-                        this.executeMove(bestTokenId, false, color);
-                    } else {
-                        window.networkManager.passTurnToNext(color);
-                    }
-                }, 350);
             } else {
                 this.isRolling = false;
                 this.setBannerText(`🎲 ${result.dice} পড়েছে!`, `প্রতিপক্ষ (${color.toUpperCase()}) ঘুঁটি চালছে...`);
@@ -2939,14 +2972,16 @@ class LudoUIController {
             }
         }
 
-        if (window.networkManager && window.networkManager.isOnlineMatch) {
-            window.networkManager.clearTurnTimers();
-            if (!fromRemote) {
-                const curPlayer = this.engine.getCurrentPlayer();
-                if (curPlayer.id === window.networkManager.myColor) {
-                    window.networkManager.moveToken(tokenId);
-                }
-            }
+        const player = (moverColor && this.engine && this.engine.players) ? (this.engine.players.find(p => p.id === moverColor) || this.engine.getCurrentPlayer()) : this.engine.getCurrentPlayer();
+        const effectiveColor = moverColor || player.id;
+
+        // Idempotency check: prevent duplicate execution of the exact same turn move
+        const curTurnSeq = window.networkManager?.currentTurnSeq || 0;
+        const curDice = this.engine?.diceValue || 0;
+        const moveKey = `${effectiveColor}_${tokenId}_${curDice}_${curTurnSeq}`;
+        if (this._lastExecutedMoveKey === moveKey && !fromRemote) {
+            console.log(`[executeMove] Move ${moveKey} already executed, dropping duplicate.`);
+            return;
         }
 
         if (this.animatingTokens) {
@@ -2957,15 +2992,45 @@ class LudoUIController {
                 return;
             }
         }
+
+        // If not from remote and engine state is no longer SELECTING_TOKEN, reject duplicate/race moves
+        if (!fromRemote && this.engine.state !== 'SELECTING_TOKEN') {
+            console.log(`[executeMove] Engine is not in SELECTING_TOKEN (${this.engine.state}). Ignoring move attempt.`);
+            return;
+        }
+
+        this._lastExecutedMoveKey = moveKey;
+
+        if (window.networkManager && window.networkManager.isOnlineMatch) {
+            window.networkManager.clearTurnTimers();
+            if (!fromRemote) {
+                const curPlayer = this.engine.getCurrentPlayer();
+                if (curPlayer.id === window.networkManager.myColor) {
+                    window.networkManager.moveToken(tokenId);
+                }
+            }
+        }
+
         this._animStartTime = Date.now();
         this.stopTurnTimer();
 
-        const player = (moverColor && this.engine && this.engine.players) ? (this.engine.players.find(p => p.id === moverColor) || this.engine.getCurrentPlayer()) : this.engine.getCurrentPlayer();
         let token = player.tokens.find(t => t.id === tokenId);
         if (!token && this.engine.players) {
             for (const p of this.engine.players) {
                 token = p.tokens.find(t => t.id === tokenId);
                 if (token) break;
+            }
+        }
+
+        // Fast-path: If remote authoritative move arrives and token is already at target destination,
+        // do not re-hop; just reconcile board state cleanly
+        if (fromRemote && authoritativeData && token) {
+            if (token.state === authoritativeData.targetState && 
+                token.stepCount === authoritativeData.targetStepCount && 
+                token.trackIndex === authoritativeData.trackIndex) {
+                console.log(`[executeMove] Token ${tokenId} already at destination, reconciling state without re-hop`);
+                this.finalizeMove(tokenId, fromRemote, moverColor, authoritativeData);
+                return;
             }
         }
 
@@ -3384,6 +3449,10 @@ class LudoUIController {
 
         // 1. Check if user clicked on their personal Yard Dice to Roll
         if (player.type === 'human' && this.engine.state === 'WAITING_ROLL') {
+            if (window.networkManager && window.networkManager.isOnlineMatch) {
+                const isBot = window.networkManager.botColors && window.networkManager.botColors.includes(player.id);
+                if (isBot) return;
+            }
             const pData = BOARD_DATA.PLAYERS[player.id.toUpperCase()];
             if (pData && pData.diceCenter) {
                 const dcx = (pData.diceCenter.col + 0.5) * this.cellSize;
@@ -3402,6 +3471,11 @@ class LudoUIController {
         if (window.networkManager && window.networkManager.isOnlineMatch) {
             if (player.id !== window.networkManager.myColor) {
                 window.networkManager.showToast('এখন আপনার চাল নয়!');
+                return;
+            }
+            const isBot = window.networkManager.botColors && window.networkManager.botColors.includes(player.id);
+            if (isBot) {
+                console.log('[handleCanvasClick] Player is in bot mode. Ignoring manual touch.');
                 return;
             }
         }

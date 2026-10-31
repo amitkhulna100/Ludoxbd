@@ -424,14 +424,11 @@ class NetworkManager {
      * Instantly converts a disconnected or timed-out player slot to a bot
      * If currently that player's turn, executes bot turn immediately without hanging!
      */
-    convertPlayerToBot(color, playerName = null) {
+    convertPlayerToBot(color, playerName = null, isFromStageTimeout = false) {
         if (!color) return;
         if (!this.botColors) this.botColors = [];
         if (!this.botColors.includes(color)) {
             this.botColors.push(color);
-        }
-        if (this.peerLastSeen) {
-            this.peerLastSeen[color] = 0;
         }
 
         const ui = this.getUI();
@@ -451,8 +448,9 @@ class NetworkManager {
             this.showToast(`🤖 ${displayName}-এর জন্য এখন রোবট খেলছে।`);
         }
 
-        // If it is CURRENTLY that player's turn:
-        if (this.currentTurnColor === color) {
+        // If it is CURRENTLY that player's turn and NOT already invoked from a stage timeout:
+        // (Stage timeout handlers execute executeAutoRoll or executeAutoMove immediately without delay)
+        if (!isFromStageTimeout && this.currentTurnColor === color) {
             console.log(`[Instant Bot Takeover] Player ${color} is currently active. Executing bot turn immediately...`);
             this.clearTurnTimers();
             setTimeout(() => {
@@ -2861,7 +2859,7 @@ class NetworkManager {
         this.stageTimeoutId = setTimeout(() => {
             if (this.isOnlineMatch && this.currentTurnSeq === turnSeq && !this.stageActionExecuted && this.currentTurnStage === 'ROLL') {
                 console.log(`[Stage A Timer] Dice roll timed out for ${color}, converting to bot and executing auto-roll...`);
-                this.convertPlayerToBot(color);
+                this.convertPlayerToBot(color, null, true);
                 if (color === this.myColor) {
                     this.broadcast('PLAYER_TIMEOUT_BOT', { color: color });
                 }
@@ -2874,18 +2872,24 @@ class NetworkManager {
      * Authoritative Deterministic Auto-Roll on Stage A Timeout (Preserves bonus turns & moves)
      */
     executeAutoRoll(color, turnSeq) {
-        if (!this.isOnlineMatch || this.stageActionExecuted || this.currentTurnSeq !== turnSeq) return;
+        if (!this.isOnlineMatch || this.stageActionExecuted) return;
+        if (turnSeq && this.currentTurnSeq !== turnSeq) return;
         this.stageActionExecuted = true;
         this._lastTurnActivityTimestamp = Date.now();
         this.clearTurnTimers();
 
         const ui = this.getUI();
         if (!ui || !ui.engine) return;
+        if (ui.engine.state !== 'WAITING_ROLL') return;
 
         const roll = this.getDeterministicRoll(this.currentRoomCode, turnSeq);
-        const isMyTurn = (color === this.myColor);
+        const isLocalOwner = (color === this.myColor);
+        const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
+        const isBotLeader = (activeHumans[0] === this.myColor);
+        const isConnected = this.isPeerActive(color);
+        const shouldBroadcast = isLocalOwner || (isBotLeader && !isConnected);
 
-        if (isMyTurn) {
+        if (shouldBroadcast) {
             this.broadcast('DICE_ROLLED', {
                 color: color,
                 roll: roll,
@@ -2928,7 +2932,7 @@ class NetworkManager {
         this.stageTimeoutId = setTimeout(() => {
             if (this.isOnlineMatch && this.currentTurnSeq === turnSeq && !this.stageActionExecuted && this.currentTurnStage === 'MOVE') {
                 console.log(`[Stage B Timer] Token move timed out for ${color}, converting to bot and executing auto-move...`);
-                this.convertPlayerToBot(color);
+                this.convertPlayerToBot(color, null, true);
                 if (color === this.myColor) {
                     this.broadcast('PLAYER_TIMEOUT_BOT', { color: color });
                 }
@@ -2941,19 +2945,26 @@ class NetworkManager {
      * Authoritative Deterministic Auto-Move on Stage B Timeout
      */
     executeAutoMove(color, turnSeq) {
-        if (!this.isOnlineMatch || this.stageActionExecuted || this.currentTurnSeq !== turnSeq) return;
+        if (!this.isOnlineMatch || this.stageActionExecuted) return;
+        if (turnSeq && this.currentTurnSeq !== turnSeq) return;
         this.stageActionExecuted = true;
         this._lastTurnActivityTimestamp = Date.now();
         this.clearTurnTimers();
 
         const ui = this.getUI();
         if (!ui || !ui.engine) return;
+        if (ui.engine.state !== 'SELECTING_TOKEN') return;
 
         const bestTokenId = this.selectBestLegalMove(ui.engine);
         if (bestTokenId !== null && bestTokenId !== undefined) {
             console.log(`[Stage B Auto-Move] Selected best legal move token ${bestTokenId} for ${color}`);
-            const isMyTurn = (color === this.myColor);
-            if (isMyTurn) {
+            const isLocalOwner = (color === this.myColor);
+            const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
+            const isBotLeader = (activeHumans[0] === this.myColor);
+            const isConnected = this.isPeerActive(color);
+            const shouldBroadcast = isLocalOwner || (isBotLeader && !isConnected);
+
+            if (shouldBroadcast) {
                 this.moveToken(bestTokenId, color);
             }
             ui.executeMove(bestTokenId, false, color);
@@ -3095,7 +3106,6 @@ class NetworkManager {
      * Clear all active turn timers cleanly
      */
     clearTurnTimers() {
-        this.stageActionExecuted = true;
         if (this.stageTimeoutId) {
             clearTimeout(this.stageTimeoutId);
             this.stageTimeoutId = null;
@@ -3140,12 +3150,29 @@ class NetworkManager {
         this._lastTurnActivityTimestamp = Date.now();
         const ui = this.getUI();
         if (!ui || !ui.engine) return;
+        if (ui.engine.state !== 'WAITING_ROLL') return;
 
         const roll = this.getDeterministicRoll(this.currentRoomCode, this.currentTurnSeq);
         console.log(`[Deterministic Bot Turn] ${botColor} rolling sequence ${this.currentTurnSeq}: ${roll}`);
 
+        const isLocalOwner = (botColor === this.myColor);
+        const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
+        const isBotLeader = (activeHumans[0] === this.myColor);
+        const isConnected = this.isPeerActive(botColor);
+        const shouldBroadcast = isLocalOwner || (isBotLeader && !isConnected);
+
+        if (shouldBroadcast) {
+            this.broadcast('DICE_ROLLED', {
+                color: botColor,
+                roll: roll,
+                isSix: (roll === 6),
+                isAuto: true,
+                turnSeq: this.currentTurnSeq
+            });
+        }
+
         if (typeof ui.executeOnlineRoll === 'function') {
-            ui.executeOnlineRoll(botColor, roll);
+            ui.executeOnlineRoll(botColor, roll, true);
         }
     }
 

@@ -558,6 +558,10 @@ class LudoUIController {
         const sideBtnAuto = document.getElementById('sideBtnAutoPlay');
         if (sideBtnAuto) {
             bindFastTap(sideBtnAuto, () => {
+                if (window.networkManager && window.networkManager.isOnlineMatch) {
+                    window.networkManager.toggleAutoPlay();
+                    return;
+                }
                 this.autoPlay = !this.autoPlay;
                 sideBtnAuto.textContent = `🤖 Auto Play: ${this.autoPlay ? 'ON' : 'OFF'}`;
                 const btnAutoPlay = document.getElementById('btnAutoPlay');
@@ -599,12 +603,16 @@ class LudoUIController {
             }
         });
 
-        // Auto Play Button (Spectator Mode)
+        // Auto Play Button (Spectator Mode & Online Bot Toggle)
         this.autoPlay = false;
         const btnAutoPlay = document.getElementById('btnAutoPlay');
         if (btnAutoPlay) {
             btnAutoPlay.style.borderColor = 'var(--cell-border)';
             btnAutoPlay.addEventListener('click', () => {
+                if (window.networkManager && window.networkManager.isOnlineMatch) {
+                    window.networkManager.toggleAutoPlay();
+                    return;
+                }
                 this.autoPlay = !this.autoPlay;
                 btnAutoPlay.style.borderColor = this.autoPlay ? 'var(--accent-green)' : 'var(--cell-border)';
                 if (this.autoPlay) {
@@ -1796,6 +1804,10 @@ class LudoUIController {
         if (toggleAutoPlay) {
             toggleAutoPlay.addEventListener('click', () => {
                 window.soundFX.playClick();
+                if (window.networkManager && window.networkManager.isOnlineMatch) {
+                    window.networkManager.toggleAutoPlay();
+                    return;
+                }
                 this.autoPlay = !this.autoPlay;
                 updateSettingsUI();
                 const btnAuto = document.getElementById('btnAutoPlay');

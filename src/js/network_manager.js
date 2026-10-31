@@ -405,7 +405,7 @@ class NetworkManager {
     }
 
     /**
-     * Instantly converts a disconnected player slot to a bot
+     * Instantly converts a disconnected or timed-out player slot to a bot
      * If currently that player's turn, executes bot turn immediately without hanging!
      */
     convertPlayerToBot(color, playerName = null) {
@@ -427,12 +427,17 @@ class NetworkManager {
             }
         }
 
-        const displayName = playerName || color.toUpperCase();
-        this.showToast(`⚡ ${displayName} সংযোগ বিচ্ছিন্ন হয়েছে। এখন রোবট খেলবে।`);
+        if (color === this.myColor) {
+            this.updateAutoPlayUI(true);
+            this.showToast('⏰ ১৫ সেকেন্ড পার হয়েছে! আপনার জন্য রোবট খেলছে। যেকোনো সময় অটো প্লে বন্ধ করতে পারেন।');
+        } else {
+            const displayName = playerName || color.toUpperCase();
+            this.showToast(`🤖 ${displayName}-এর জন্য এখন রোবট খেলছে।`);
+        }
 
-        // If it is CURRENTLY that disconnected player's turn:
+        // If it is CURRENTLY that player's turn:
         if (this.currentTurnColor === color) {
-            console.log(`[Instant Bot Takeover] Disconnected player ${color} is currently active. Executing bot turn immediately...`);
+            console.log(`[Instant Bot Takeover] Player ${color} is currently active. Executing bot turn immediately...`);
             this.clearTurnTimers();
             setTimeout(() => {
                 if (this.isOnlineMatch && this.currentTurnColor === color) {
@@ -447,7 +452,7 @@ class NetworkManager {
     }
 
     /**
-     * Restores human control when a disconnected player reconnects
+     * Restores human control when a player reconnects or turns off Auto Play
      */
     restoreBotToPlayer(color, playerName = null) {
         if (!color) return;
@@ -456,6 +461,12 @@ class NetworkManager {
         }
         if (this.peerLastSeen) {
             this.peerLastSeen[color] = Date.now();
+        }
+
+        // Clear any scheduled bot rolls for this color
+        if (this.currentTurnColor === color && this.botRollTimeout) {
+            clearTimeout(this.botRollTimeout);
+            this.botRollTimeout = null;
         }
 
         const ui = this.getUI();
@@ -467,8 +478,84 @@ class NetworkManager {
             }
         }
 
-        const displayName = playerName || color.toUpperCase();
-        this.showToast(`🎉 ${displayName} পুনরায় ম্যাচে যোগ দিয়েছেন!`);
+        if (color === this.myColor) {
+            this.updateAutoPlayUI(false);
+            this.showToast('🎮 অটো প্লে বন্ধ হয়েছে! এখন আপনি নিজে খেলছেন।');
+            // If it is currently my turn, unlock dice box & start 15s turn timer!
+            if (this.currentTurnColor === this.myColor) {
+                const box = document.getElementById(`dice_box_${this.myColor}`);
+                if (box) {
+                    box.style.pointerEvents = 'auto';
+                    box.style.cursor = 'pointer';
+                }
+                const banner = document.getElementById('turnBanner');
+                if (banner) {
+                    banner.textContent = '👉 আপনার চাল! ডাইসে চাপ দিন';
+                }
+                if (ui?.engine?.state === 'WAITING_ROLL') {
+                    this.startStageADiceRoll(this.myColor, ++this.currentTurnSeq);
+                } else if (ui?.engine?.state === 'SELECTING_TOKEN') {
+                    this.startStageBTokenMove(this.myColor, this.currentTurnSeq);
+                }
+            }
+        } else {
+            const displayName = playerName || color.toUpperCase();
+            this.showToast(`🎉 ${displayName} নিজে খেলা শুরু করেছেন!`);
+        }
+    }
+
+    /**
+     * Toggle Auto Play On/Off for the local player
+     */
+    toggleAutoPlay() {
+        if (!this.isOnlineMatch) {
+            const ui = this.getUI();
+            if (ui) {
+                ui.autoPlay = !ui.autoPlay;
+                this.updateAutoPlayUI(ui.autoPlay);
+                if (ui.autoPlay) ui.checkAITurn();
+            }
+            return;
+        }
+
+        const isCurrentlyBot = (this.botColors && this.botColors.includes(this.myColor));
+        if (isCurrentlyBot) {
+            // Player wants to turn Auto Play OFF and take back control!
+            console.log(`[Auto Play] Resuming manual control for ${this.myColor}`);
+            this.restoreBotToPlayer(this.myColor);
+            this.broadcast('PLAYER_RESUMED_MANUAL', { color: this.myColor });
+        } else {
+            // Player manually turned Auto Play ON!
+            console.log(`[Auto Play] Manual Auto Play enabled for ${this.myColor}`);
+            this.convertPlayerToBot(this.myColor);
+            this.broadcast('PLAYER_TIMEOUT_BOT', { color: this.myColor });
+        }
+    }
+
+    /**
+     * Synchronize Auto Play UI buttons, pills & settings
+     */
+    updateAutoPlayUI(isActive) {
+        const btnAutoPlay = document.getElementById('btnAutoPlay');
+        if (btnAutoPlay) {
+            btnAutoPlay.classList.toggle('active', isActive);
+            btnAutoPlay.style.borderColor = isActive ? '#22c55e' : '';
+            btnAutoPlay.style.background = isActive ? 'rgba(34, 197, 94, 0.25)' : '';
+            btnAutoPlay.title = isActive ? 'অটো প্লে চালু আছে (ক্লিক করে বন্ধ করুন)' : 'অটো প্লে / স্বয়ংক্রিয় খেলা';
+        }
+        const pill = document.getElementById('autoPlayActivePill');
+        if (pill) {
+            pill.style.display = isActive ? 'inline-flex' : 'none';
+        }
+        const toggleSettings = document.getElementById('toggleAutoPlaySettings');
+        if (toggleSettings) {
+            toggleSettings.textContent = isActive ? 'চালু (ON)' : 'বন্ধ (OFF)';
+            toggleSettings.classList.toggle('active', isActive);
+        }
+        const sideBtnAuto = document.getElementById('sideBtnAutoPlay');
+        if (sideBtnAuto) {
+            sideBtnAuto.textContent = `🤖 Auto Play: ${isActive ? 'ON' : 'OFF'}`;
+        }
     }
 
     handleGameEvent(data) {
@@ -642,6 +729,20 @@ class NetworkManager {
                 break;
             }
 
+            case 'PLAYER_TIMEOUT_BOT': {
+                if (this.isOnlineMatch && data.color) {
+                    this.convertPlayerToBot(data.color, data.playerName);
+                }
+                break;
+            }
+
+            case 'PLAYER_RESUMED_MANUAL': {
+                if (this.isOnlineMatch && data.color) {
+                    this.restoreBotToPlayer(data.color, data.playerName);
+                }
+                break;
+            }
+
             case 'MATCH_STARTED':
                 if (this._lobbyDiscoveryTimer) {
                     clearTimeout(this._lobbyDiscoveryTimer);
@@ -736,7 +837,8 @@ class NetworkManager {
 
             case 'PLAYER_REJOINED_MATCH': {
                 if (this.isOnlineMatch && data.color) {
-                    this.restoreBotToPlayer(data.color, data.playerName);
+                    const displayName = data.playerName || data.color.toUpperCase();
+                    this.showToast(`🎉 ${displayName} পুনরায় ম্যাচে যোগ দিয়েছেন!`);
                 }
                 break;
             }
@@ -1979,12 +2081,14 @@ class NetworkManager {
             this._lastAppliedSyncSeq = stateData.currentTurnSeq;
         }
 
-        // Restore bot colors (self is always human)
+        // Restore bot colors & local auto-play indicator
         if (Array.isArray(stateData.botColors)) {
-            this.botColors = stateData.botColors.filter(c => c !== this.myColor);
+            const isLocalBot = stateData.botColors.includes(this.myColor);
+            this.botColors = [...stateData.botColors];
             ui.engine.players.forEach(p => {
                 p.isAI = this.botColors.includes(p.id);
             });
+            this.updateAutoPlayUI(isLocalBot);
         }
 
         // Restore token coordinates & status
@@ -2205,6 +2309,15 @@ class NetworkManager {
                 } else {
                     this.leaveCurrentMatch(true);
                 }
+            });
+        }
+
+        // Auto Play Off / Resume Button in Floating Pill
+        const btnAutoPlayOff = document.getElementById('btnAutoPlayOff');
+        if (btnAutoPlayOff) {
+            btnAutoPlayOff.addEventListener('click', () => {
+                window.soundFX?.playClick();
+                this.toggleAutoPlay();
             });
         }
     }
@@ -2455,6 +2568,13 @@ class NetworkManager {
             return false;
         }
 
+        // If local player had Auto Play active and taps their dice manually, turn Auto Play OFF!
+        if (!isAuto && this.botColors && this.botColors.includes(this.myColor)) {
+            console.log(`[rollDice] User tapped dice while in bot mode. Disabling Auto Play...`);
+            this.restoreBotToPlayer(this.myColor);
+            this.broadcast('PLAYER_RESUMED_MANUAL', { color: this.myColor });
+        }
+
         // 2. Prevent Double Rolling
         if (this.isRolling) return false;
         this.isRolling = true;
@@ -2702,7 +2822,11 @@ class NetworkManager {
         const remMs = Math.max(0, this.stageDeadlineMs - Date.now());
         this.stageTimeoutId = setTimeout(() => {
             if (this.isOnlineMatch && this.currentTurnSeq === turnSeq && !this.stageActionExecuted && this.currentTurnStage === 'ROLL') {
-                console.log(`[Stage A Timer] Dice roll timed out for ${color}, executing deterministic auto-roll...`);
+                console.log(`[Stage A Timer] Dice roll timed out for ${color}, converting to bot and executing auto-roll...`);
+                this.convertPlayerToBot(color);
+                if (color === this.myColor) {
+                    this.broadcast('PLAYER_TIMEOUT_BOT', { color: color });
+                }
                 this.executeAutoRoll(color, turnSeq);
             }
         }, remMs);
@@ -2765,7 +2889,11 @@ class NetworkManager {
         const remMs = Math.max(0, this.stageDeadlineMs - Date.now());
         this.stageTimeoutId = setTimeout(() => {
             if (this.isOnlineMatch && this.currentTurnSeq === turnSeq && !this.stageActionExecuted && this.currentTurnStage === 'MOVE') {
-                console.log(`[Stage B Timer] Token move timed out for ${color}, executing deterministic auto-move...`);
+                console.log(`[Stage B Timer] Token move timed out for ${color}, converting to bot and executing auto-move...`);
+                this.convertPlayerToBot(color);
+                if (color === this.myColor) {
+                    this.broadcast('PLAYER_TIMEOUT_BOT', { color: color });
+                }
                 this.executeAutoMove(color, turnSeq);
             }
         }, remMs);

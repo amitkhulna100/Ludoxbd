@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0b10">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Ludo X BD - 3D AAA Multiplayer</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="galaxy">
+
+    <!-- ============================================================
+         LUDO X BD HOME SCREEN (EXACT LUDO KING ARCHITECTURE)
+         ============================================================ -->
+    <section id="homeScreen" class="home-screen ludo-king-home active">
+        <!-- Exact Ludo King Patterned Blue Board Watermark Background -->
+        <div class="lk-bg-watermark"></div>
+
+        <!-- 1. Top Bar: Avatar, Level, Settings, Mail, Gems, Coins -->
+        <div class="lk-top-bar">
+            <!-- Left Profile Card -->
+            <div class="lk-profile-card" id="btnUserProfile" style="cursor: pointer;" title="প্রোফাইল দেখুন">
+                <div class="lk-avatar-frame">
+                    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23e11d48'/><circle cx='50' cy='38' r='20' fill='%23fed7aa'/><path d='M25 85 C25 62 75 62 75 85 Z' fill='%231e3a8a'/><rect x='36' y='32' width='28' height='8' rx='4' fill='%23000'/><polygon points='42,20 50,12 58,20 54,28 46,28' fill='%23f59e0b'/></svg>" class="lk-avatar-img" id="userAvatarImg" alt="Profile">
+                    <span class="lk-online-dot"></span>
+                </div>
+                <div class="lk-level-badge" id="userLevelBadge">⭐ 1</div>
+            </div>
+
+            <!-- Settings & Mail Icons -->
+            <div class="lk-top-icons">
+                <button class="lk-top-btn" id="btnHomeSettings" title="সেটিংস">⚙️</button>
+                <button class="lk-top-btn lk-badge-note" id="btnMailbox" title="বার্তা">
+                    ✉️
+                    <span class="lk-mini-dot">1</span>
+                </button>
+            </div>
+
+            <!-- Right Wallets (Gems & Coins) -->
+            <div class="lk-wallets-group">
+                <!-- Gems (Diamonds) -->
+                <div class="lk-wallet-pill gems">
+                    <span class="lk-wallet-icon">💎</span>
+                    <span class="lk-wallet-amt" id="userDiamonds">50</span>
+                    <button class="lk-plus-btn" id="btnGemsAdd">+</button>
+                </div>
+                <!-- Coins -->
+                <div class="lk-wallet-pill coins">
+                    <span class="lk-wallet-icon">🪙</span>
+                    <span class="lk-wallet-amt" id="userCoins">5,050</span>
+                    <button class="lk-plus-btn" id="btnCoinsAdd">+</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 3. Central Authentic Hero Stage: Crown, 3D Ludo Board, 3D Dice and 4 Pawns -->
+        <div class="lk-center-hero">
+            <!-- Big Golden Crown + LUDO X BD Ultra-Premium Logo -->
+            <div class="lk-crown-logo-wrap">
+                <div class="logo-crown-halo">
+                    <div class="lk-royal-crown">👑</div>
+                    <div class="crown-sparkle s1">✨</div>
+                    <div class="crown-sparkle s2">✨</div>
+                </div>
+
+                <div class="lk-logo-badge-container">
+                    <div class="lk-logo-letters">
+                        <span class="l-circle l1" title="L">L</span>
+                        <span class="l-circle l2" title="U">U</span>
+                        <span class="l-circle l3" title="D">D</span>
+                        <span class="l-circle l4" title="O">O</span>
+                    </div>
+
+                    <!-- Distinctive 3D Glowing X BD Emblem -->
+                    <div class="lx-bd-brand-ribbon">
+                        <span class="fiery-x">X</span>
+                        <span class="bd-ruby-badge">
+                            <span class="bd-flag-dot"></span>BD
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Mini Ludo Board with Standing Pawns and Glowing Dice in Center -->
+            <div class="lk-board-diorama">
+                <!-- Blue Pawn (Left) -->
+                <div class="diorama-pawn p-blue">
+                    <svg viewBox="0 0 100 140" class="glossy-pawn-svg">
+                        <defs>
+                            <radialGradient id="blueBallGrad" cx="35%" cy="35%" r="65%">
+                                <stop offset="0%" stop-color="#7dd3fc"/>
+                                <stop offset="40%" stop-color="#0284c7"/>
+                                <stop offset="100%" stop-color="#0c4a6e"/>
+                            </radialGradient>
+                            <linearGradient id="blueBodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#0284c7"/>
+                                <stop offset="30%" stop-color="#38bdf8"/>
+                                <stop offset="70%" stop-color="#0369a1"/>
+                                <stop offset="100%" stop-color="#082f49"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Base ring -->
+                        <ellipse cx="50" cy="120" rx="36" ry="12" fill="#082f49"/>
+                        <ellipse cx="50" cy="116" rx="34" ry="10" fill="url(#blueBodyGrad)"/>
+                        <ellipse cx="50" cy="112" rx="28" ry="7" fill="#38bdf8" opacity="0.6"/>
+                        <!-- Cone Body -->
+                        <path d="M 32 50 Q 22 90 18 112 Q 50 118 82 112 Q 78 90 68 50 Z" fill="url(#blueBodyGrad)"/>
+                        <!-- Neck Collar -->
+                        <ellipse cx="50" cy="50" rx="18" ry="6" fill="#082f49"/>
+                        <ellipse cx="50" cy="48" rx="17" ry="5" fill="#7dd3fc"/>
+                        <!-- Head Ball -->
+                        <circle cx="50" cy="30" r="22" fill="url(#blueBallGrad)"/>
+                        <circle cx="43" cy="23" r="6" fill="#ffffff" opacity="0.75"/>
+                    </svg>
+                </div>
+
+                <!-- Red Pawn (Top Left) -->
+                <div class="diorama-pawn p-red">
+                    <svg viewBox="0 0 100 140" class="glossy-pawn-svg">
+                        <defs>
+                            <radialGradient id="redBallGrad" cx="35%" cy="35%" r="65%">
+                                <stop offset="0%" stop-color="#fca5a5"/>
+                                <stop offset="40%" stop-color="#eb1c24"/>
+                                <stop offset="100%" stop-color="#7f1d1d"/>
+                            </radialGradient>
+                            <linearGradient id="redBodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#dc2626"/>
+                                <stop offset="30%" stop-color="#f87171"/>
+                                <stop offset="70%" stop-color="#b91c1c"/>
+                                <stop offset="100%" stop-color="#450a0a"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="50" cy="120" rx="36" ry="12" fill="#450a0a"/>
+                        <ellipse cx="50" cy="116" rx="34" ry="10" fill="url(#redBodyGrad)"/>
+                        <path d="M 32 50 Q 22 90 18 112 Q 50 118 82 112 Q 78 90 68 50 Z" fill="url(#redBodyGrad)"/>
+                        <ellipse cx="50" cy="50" rx="18" ry="6" fill="#7f1d1d"/>
+                        <circle cx="50" cy="30" r="22" fill="url(#redBallGrad)"/>
+                        <circle cx="43" cy="23" r="6" fill="#ffffff" opacity="0.75"/>
+                    </svg>
+                </div>
+
+                <!-- 3D Realistic Mini Isometric Ludo Board -->
+                <div class="diorama-board-stage">
+                    <div class="board-3d-canvas-wrap">
+                        <svg viewBox="0 0 300 300" class="mini-board-svg">
+                            <!-- Board Base Plate -->
+                            <rect width="300" height="300" rx="20" fill="#ffffff" stroke="#facc15" stroke-width="8"/>
+                            
+                            <!-- Red Yard (Top Left) -->
+                            <rect x="14" y="14" width="108" height="108" rx="12" fill="#eb1c24"/>
+                            <rect x="28" y="28" width="80" height="80" rx="8" fill="#ffffff"/>
+                            <circle cx="48" cy="48" r="10" fill="#eb1c24"/>
+                            <circle cx="88" cy="48" r="10" fill="#eb1c24"/>
+                            <circle cx="48" cy="88" r="10" fill="#eb1c24"/>
+                            <circle cx="88" cy="88" r="10" fill="#eb1c24"/>
+
+                            <!-- Green Yard (Top Right) -->
+                            <rect x="178" y="14" width="108" height="108" rx="12" fill="#02a04b"/>
+                            <rect x="192" y="28" width="80" height="80" rx="8" fill="#ffffff"/>
+                            <circle cx="212" cy="48" r="10" fill="#02a04b"/>
+                            <circle cx="252" cy="48" r="10" fill="#02a04b"/>
+                            <circle cx="212" cy="88" r="10" fill="#02a04b"/>
+                            <circle cx="252" cy="88" r="10" fill="#02a04b"/>
+
+                            <!-- Yellow Yard (Bottom Right) -->
+                            <rect x="178" y="178" width="108" height="108" rx="12" fill="#ffe013"/>
+                            <rect x="192" y="192" width="80" height="80" rx="8" fill="#ffffff"/>
+                            <circle cx="212" cy="212" r="10" fill="#ffe013"/>
+                            <circle cx="252" cy="212" r="10" fill="#ffe013"/>
+                            <circle cx="212" cy="252" r="10" fill="#ffe013"/>
+                            <circle cx="252" cy="252" r="10" fill="#ffe013"/>
+
+                            <!-- Blue Yard (Bottom Left) -->
+                            <rect x="14" y="178" width="108" height="108" rx="12" fill="#0284c7"/>
+                            <rect x="28" y="192" width="80" height="80" rx="8" fill="#ffffff"/>
+                            <circle cx="48" cy="212" r="10" fill="#0284c7"/>
+                            <circle cx="88" cy="212" r="10" fill="#0284c7"/>
+                            <circle cx="48" cy="252" r="10" fill="#0284c7"/>
+                            <circle cx="88" cy="252" r="10" fill="#0284c7"/>
+
+                            <!-- Center Victory Zone Triangles -->
+                            <polygon points="122,122 178,122 150,150" fill="#02a04b"/>
+                            <polygon points="178,122 178,178 150,150" fill="#ffe013"/>
+                            <polygon points="178,178 122,178 150,150" fill="#0284c7"/>
+                            <polygon points="122,178 122,122 150,150" fill="#eb1c24"/>
+
+                            <!-- Safe Tracks -->
+                            <rect x="34" y="122" width="18" height="18" fill="#eb1c24"/>
+                            <rect x="122" y="34" width="18" height="18" fill="#02a04b"/>
+                            <rect x="248" y="160" width="18" height="18" fill="#ffe013"/>
+                            <rect x="160" y="248" width="18" height="18" fill="#0284c7"/>
+                        </svg>
+                    </div>
+
+                    <!-- Authentic Rolling 3D Big Dice in Center -->
+                    <div class="diorama-dice-stage">
+                        <div class="dice-3d-box">
+                            <div class="d-face d-front">
+                                <span class="d-pip dot-red"></span>
+                            </div>
+                            <div class="d-face d-top">
+                                <span class="d-pip dot-black p-tl"></span>
+                                <span class="d-pip dot-black p-br"></span>
+                            </div>
+                            <div class="d-face d-right">
+                                <span class="d-pip dot-black p-tl"></span>
+                                <span class="d-pip dot-black p-mid"></span>
+                                <span class="d-pip dot-black p-br"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Green Pawn (Top Right) -->
+                <div class="diorama-pawn p-green">
+                    <svg viewBox="0 0 100 140" class="glossy-pawn-svg">
+                        <defs>
+                            <radialGradient id="greenBallGrad" cx="35%" cy="35%" r="65%">
+                                <stop offset="0%" stop-color="#bbf7d0"/>
+                                <stop offset="40%" stop-color="#16a34a"/>
+                                <stop offset="100%" stop-color="#14532d"/>
+                            </radialGradient>
+                            <linearGradient id="greenBodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#16a34a"/>
+                                <stop offset="30%" stop-color="#4ade80"/>
+                                <stop offset="70%" stop-color="#15803d"/>
+                                <stop offset="100%" stop-color="#052e16"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="50" cy="120" rx="36" ry="12" fill="#052e16"/>
+                        <ellipse cx="50" cy="116" rx="34" ry="10" fill="url(#greenBodyGrad)"/>
+                        <path d="M 32 50 Q 22 90 18 112 Q 50 118 82 112 Q 78 90 68 50 Z" fill="url(#greenBodyGrad)"/>
+                        <ellipse cx="50" cy="50" rx="18" ry="6" fill="#14532d"/>
+                        <circle cx="50" cy="30" r="22" fill="url(#greenBallGrad)"/>
+                        <circle cx="43" cy="23" r="6" fill="#ffffff" opacity="0.75"/>
+                    </svg>
+                </div>
+
+                <!-- Yellow Pawn (Right) -->
+                <div class="diorama-pawn p-yellow">
+                    <svg viewBox="0 0 100 140" class="glossy-pawn-svg">
+                        <defs>
+                            <radialGradient id="yellowBallGrad" cx="35%" cy="35%" r="65%">
+                                <stop offset="0%" stop-color="#fef9c3"/>
+                                <stop offset="40%" stop-color="#eab308"/>
+                                <stop offset="100%" stop-color="#713f12"/>
+                            </radialGradient>
+                            <linearGradient id="yellowBodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#eab308"/>
+                                <stop offset="30%" stop-color="#fde047"/>
+                                <stop offset="70%" stop-color="#ca8a04"/>
+                                <stop offset="100%" stop-color="#422006"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="50" cy="120" rx="36" ry="12" fill="#422006"/>
+                        <ellipse cx="50" cy="116" rx="34" ry="10" fill="url(#yellowBodyGrad)"/>
+                        <path d="M 32 50 Q 22 90 18 112 Q 50 118 82 112 Q 78 90 68 50 Z" fill="url(#yellowBodyGrad)"/>
+                        <ellipse cx="50" cy="50" rx="18" ry="6" fill="#713f12"/>
+                        <circle cx="50" cy="30" r="22" fill="url(#yellowBallGrad)"/>
+                        <circle cx="43" cy="23" r="6" fill="#ffffff" opacity="0.75"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Exact 2-Tier Yellow/Blue Game Mode Cards (As in Ludo King Screenshot) -->
+        <div class="lk-mode-container">
+            <!-- Row 1: 3 Mode Cards (ONLINE | TEAM UP | FRIENDS) -->
+            <div class="lk-mode-row row-3">
+                <!-- Online -->
+                <div class="lk-mode-btn" id="btnModeOnline">
+                    <div class="lk-mode-top">
+                        <div class="lk-mode-icon-art">
+                            <span class="art-phone">📱</span>
+                            <span class="art-globe">🌐</span>
+                            <span class="art-phone">📱</span>
+                        </div>
+                    </div>
+                    <div class="lk-mode-base">
+                        <span class="lk-btn-label">ONLINE</span>
+                    </div>
+                    <div class="lk-players-online">
+                        <span class="dot-online"></span> Players: 162,275
+                    </div>
+                </div>
+
+                <!-- Team Up (Play Team 2v2) -->
+                <div class="lk-mode-btn" id="btnModeTeam">
+                    <div class="lk-mode-top">
+                        <div class="lk-mode-icon-art">
+                            <span class="art-pin pin-blue">📍</span>
+                            <span class="art-sword">🗡️</span>
+                            <span class="art-pin pin-red">📍</span>
+                        </div>
+                    </div>
+                    <div class="lk-mode-base">
+                        <span class="lk-btn-label">TEAM UP</span>
+                    </div>
+                    <div class="lk-players-online">
+                        <span class="dot-online"></span> Players: 5,880
+                    </div>
+                </div>
+
+                <!-- Friends / Play N Play Quick Connect -->
+                <div class="lk-mode-btn" id="btnModeFriends">
+                    <div class="lk-mode-top">
+                        <div class="lk-mode-icon-art">
+                            <span class="art-phone">📱</span>
+                            <span class="art-heart">❤️</span>
+                            <span class="art-phone">📱</span>
+                        </div>
+                    </div>
+                    <div class="lk-mode-base">
+                        <span class="lk-btn-label">FRIENDS</span>
+                    </div>
+                    <div class="lk-players-online">
+                        <span class="dot-online"></span> Players: 31,718
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: 2 Mode Cards (COMPUTER | PASS N PLAY) -->
+            <div class="lk-mode-row row-2">
+                <!-- Computer -->
+                <div class="lk-mode-btn wide" id="btnModeComputer">
+                    <div class="lk-mode-top">
+                        <div class="lk-mode-icon-art">
+                            <span class="vs-phone">📱</span>
+                            <span class="vs-badge">VS</span>
+                        </div>
+                    </div>
+                    <div class="lk-mode-base">
+                        <span class="lk-btn-label">COMPUTER</span>
+                    </div>
+                </div>
+
+                <!-- Pass N Play -->
+                <div class="lk-mode-btn wide highlight-pnp" id="btnModePassPlay">
+                    <div class="lk-mode-top">
+                        <div class="lk-mode-icon-art">
+                            <span class="pnp-art">👥 🎲 👥</span>
+                        </div>
+                    </div>
+                    <div class="lk-mode-base">
+                        <span class="lk-btn-label">PASS N PLAY</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Tournament & Events Row (Like Screenshot) -->
+        <div class="lk-events-row">
+            <!-- 7 Up 7 Down Mini Game -->
+            <div class="lk-mini-game" id="btn7UpDown" style="cursor: pointer;" title="7 Up Down মিনি গেম">
+                <div class="mini-art">7️⃣</div>
+            </div>
+
+            <!-- Center Tournament Banner -->
+            <div class="lk-tourney-banner" id="btnTournamentBanner" style="cursor: pointer;" title="টুর্নামেন্ট দেখুন">
+                <div class="tourney-crown">👑</div>
+                <div class="tourney-title">TOURNAMENT</div>
+                <div class="tourney-season">
+                    <span class="badge-s21">SEASON 21</span>
+                    <span class="s21-txt">Coming soon!</span>
+                </div>
+            </div>
+
+            <!-- Snake & Ladder Mini Game -->
+            <div class="lk-mini-game" id="btnSnakeLadder" style="cursor: pointer;" title="Snakes & Ladders">
+                <div class="mini-art">🐍🪜</div>
+            </div>
+        </div>
+
+        <!-- Bottom Quick Free Bonus & Spin Floaters (Left & Right) -->
+        <div class="lk-corner-floaters">
+            <div class="floater-item left-free" id="btnFreeVideoAd">
+                <span class="f-badge">FREE</span>
+                <span class="f-ad-icon">🎬 x5</span>
+                <span class="f-coins">🪙 1,000</span>
+            </div>
+            <div class="floater-item right-spin" id="btnLuckySpin">
+                <div class="spin-wheel-icon">🎡</div>
+                <span class="f-spin-lbl">SPIN</span>
+            </div>
+        </div>
+
+        <!-- 6. Exact Ludo King Bottom Navigation Bar (HOME, EVENT, SOCIAL, INVENTORY, STORE) -->
+        <div class="lk-bottom-nav">
+            <button class="lk-nav-tab active" id="tabHome">
+                <div class="nav-icon-wrap home-icon">
+                    <span class="n-icon">🏠</span>
+                </div>
+                <span class="nav-txt">HOME</span>
+            </button>
+            <button class="lk-nav-tab" id="tabEvent">
+                <div class="nav-icon-wrap">
+                    <span class="n-icon">📅</span>
+                    <span class="nav-red-dot">!</span>
+                </div>
+                <span class="nav-txt">EVENT</span>
+            </button>
+            <button class="lk-nav-tab" id="tabSocial">
+                <div class="nav-icon-wrap">
+                    <span class="n-icon">💬</span>
+                </div>
+                <span class="nav-txt">SOCIAL</span>
+            </button>
+            <button class="lk-nav-tab" id="tabInventory">
+                <div class="nav-icon-wrap">
+                    <span class="n-icon">🎲</span>
+                </div>
+                <span class="nav-txt">INVENTORY</span>
+            </button>
+            <button class="lk-nav-tab" id="tabStore">
+                <div class="nav-icon-wrap">
+                    <span class="n-icon">🛒</span>
+                </div>
+                <span class="nav-txt store-txt">STORE</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Top App In-Game Header (Visible when playing) -->
+    <header class="app-header in-game-only" style="display: none;">
+        <button id="btnBackToHome" class="btn-icon" title="হোম স্ক্রিনে ফিরে যান">🏠 হোম</button>
+        <div class="brand-logo">
+            <span>🎲 LUDO <strong class="highlight-x">X</strong></span>
+            <span class="brand-badge edition">BD</span>
+            <span class="brand-badge" id="inGameModeBadge">ONLINE</span>
+        </div>
+        <div class="header-controls">
+            <button id="btnAutoPlay" class="btn-icon" title="অটো প্লে / স্বয়ংক্রিয় খেলা (রোবট মোড)">🤖</button>
+            <button id="btnSoundToggle" class="btn-icon" title="শব্দ চালু/বন্ধ">🔊</button>
+        </div>
+    </header>
+
+    <!-- Main Game Container (Ludo Board Stage) -->
+    <main class="game-layout in-game-only" style="display: none;">
+
+        <!-- Desktop & Tablet Side Control Panel -->
+        <aside class="desktop-side-panel">
+            <div class="side-panel-brand">
+                <span class="side-crown">👑</span>
+                <h2 class="side-logo">LUDO <span class="highlight-x">X</span> <span class="side-edition">BD</span></h2>
+                <p class="side-tagline">AAA 3D Gaming Edition</p>
+            </div>
+            <div class="side-quick-actions">
+                <button id="sideBtnAutoPlay" class="side-action-btn">🤖 Auto Play: ON</button>
+                <button id="sideBtnSound" class="side-action-btn">🔊 Sound: ON</button>
+            </div>
+        </aside>
+
+        <!-- Game Play Stage Wrapper (Board, Pods, Controls) -->
+        <div class="game-stage-wrapper">
+
+            <!-- Ludo King Style Game Stage: 4 Corners + Central Board -->
+            <div class="ludo-king-stage">
+            
+            <!-- Top-Left Corner: Green Player Profile & Personal Dice Box -->
+            <div id="corner_green" class="corner-pod green top-left">
+                <div class="profile-box">
+                    <div class="avatar-ring">
+                        <div class="avatar-img">G</div>
+                        <div class="crown-badge">👑</div>
+                    </div>
+                    <div class="player-info">
+                        <div class="p-name">Green</div>
+                        <div id="stat_green" class="p-score">পাকা: 0/4</div>
+                    </div>
+                </div>
+                <!-- Green Personal Dice Box -->
+                <div id="dice_box_green" class="personal-dice-box" title="Green's Dice">
+                    <div class="dice-3d-scene">
+                        <div class="dice-3d-cube" id="cube_green">
+                            <div class="dice-3d-face face-1"><div class="pip p5"></div></div>
+                            <div class="dice-3d-face face-2"><div class="pip p1"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-3"><div class="pip p1"></div><div class="pip p5"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-4"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-5"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p5"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-6"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip p6"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                        </div>
+                    </div>
+                    <div class="dice-cup" style="display:none;"><div class="dice-face" id="dice_face_green"></div></div>
+                    <div class="timer-ring-container" id="timer_ring_green">
+                        <svg class="timer-ring-svg" viewBox="0 0 64 64">
+                            <circle class="timer-ring-bg" cx="32" cy="32" r="28"></circle>
+                            <circle class="timer-ring-circle" id="timer_circle_green" cx="32" cy="32" r="28"></circle>
+                        </svg>
+                        <div class="timer-badge" id="timer_badge_green">15</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top-Right Corner: Yellow Player Profile & Personal Dice Box -->
+            <div id="corner_yellow" class="corner-pod yellow top-right">
+                <!-- Yellow Personal Dice Box -->
+                <div id="dice_box_yellow" class="personal-dice-box" title="Yellow's Dice">
+                    <div class="dice-3d-scene">
+                        <div class="dice-3d-cube" id="cube_yellow">
+                            <div class="dice-3d-face face-1"><div class="pip p5"></div></div>
+                            <div class="dice-3d-face face-2"><div class="pip p1"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-3"><div class="pip p1"></div><div class="pip p5"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-4"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-5"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p5"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-6"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip p6"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                        </div>
+                    </div>
+                    <div class="dice-cup" style="display:none;"><div class="dice-face" id="dice_face_yellow"></div></div>
+                    <div class="timer-ring-container" id="timer_ring_yellow">
+                        <svg class="timer-ring-svg" viewBox="0 0 64 64">
+                            <circle class="timer-ring-bg" cx="32" cy="32" r="28"></circle>
+                            <circle class="timer-ring-circle" id="timer_circle_yellow" cx="32" cy="32" r="28"></circle>
+                        </svg>
+                        <div class="timer-badge" id="timer_badge_yellow">15</div>
+                    </div>
+                </div>
+                <div class="profile-box">
+                    <div class="avatar-ring">
+                        <div class="avatar-img">Y</div>
+                        <div class="crown-badge">👑</div>
+                    </div>
+                    <div class="player-info">
+                        <div class="p-name">Yellow</div>
+                        <div id="stat_yellow" class="p-score">পাকা: 0/4</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central High-DPI Board Canvas -->
+            <div class="board-container">
+                <canvas id="ludoCanvas"></canvas>
+            </div>
+
+
+            <!-- Bottom-Left Corner: Red Player Profile & Personal Dice Box (YOU) -->
+            <div id="corner_red" class="corner-pod red bottom-left active-turn">
+                <div class="profile-box">
+                    <div class="avatar-ring">
+                        <div class="avatar-img">R</div>
+                        <div class="crown-badge">👑</div>
+                    </div>
+                    <div class="player-info">
+                        <div class="p-name">You (Red)</div>
+                        <div id="stat_red" class="p-score">পাকা: 0/4</div>
+                    </div>
+                </div>
+                <!-- Red Personal Dice Box (Clickable to roll!) -->
+                <div id="dice_box_red" class="personal-dice-box interactive" title="Click to Roll!">
+                    <div class="dice-3d-scene">
+                        <div class="dice-3d-cube" id="cube_red">
+                            <div class="dice-3d-face face-1"><div class="pip p5"></div></div>
+                            <div class="dice-3d-face face-2"><div class="pip p1"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-3"><div class="pip p1"></div><div class="pip p5"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-4"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-5"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p5"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-6"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip p6"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                        </div>
+                    </div>
+                    <div class="dice-cup" style="display:none;"><div class="dice-face" id="dice_face_red"></div></div>
+                    <div class="timer-ring-container" id="timer_ring_red">
+                        <svg class="timer-ring-svg" viewBox="0 0 64 64">
+                            <circle class="timer-ring-bg" cx="32" cy="32" r="28"></circle>
+                            <circle class="timer-ring-circle" id="timer_circle_red" cx="32" cy="32" r="28"></circle>
+                        </svg>
+                        <div class="timer-badge" id="timer_badge_red">15</div>
+                    </div>
+                    <div class="roll-hint-tag">ROLL</div>
+                </div>
+            </div>
+
+            <!-- Bottom-Right Corner: Blue Player Profile & Personal Dice Box -->
+            <div id="corner_blue" class="corner-pod blue bottom-right">
+                <!-- Blue Personal Dice Box -->
+                <div id="dice_box_blue" class="personal-dice-box" title="Blue's Dice">
+                    <div class="dice-3d-scene">
+                        <div class="dice-3d-cube" id="cube_blue">
+                            <div class="dice-3d-face face-1"><div class="pip p5"></div></div>
+                            <div class="dice-3d-face face-2"><div class="pip p1"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-3"><div class="pip p1"></div><div class="pip p5"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-4"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-5"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p5"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                            <div class="dice-3d-face face-6"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip p6"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                        </div>
+                    </div>
+                    <div class="dice-cup" style="display:none;"><div class="dice-face" id="dice_face_blue"></div></div>
+                    <div class="timer-ring-container" id="timer_ring_blue">
+                        <svg class="timer-ring-svg" viewBox="0 0 64 64">
+                            <circle class="timer-ring-bg" cx="32" cy="32" r="28"></circle>
+                            <circle class="timer-ring-circle" id="timer_circle_blue" cx="32" cy="32" r="28"></circle>
+                        </svg>
+                        <div class="timer-badge" id="timer_badge_blue">15</div>
+                    </div>
+                </div>
+                <div class="profile-box">
+                    <div class="avatar-ring">
+                        <div class="avatar-img">B</div>
+                        <div class="crown-badge">👑</div>
+                    </div>
+                    <div class="player-info">
+                        <div class="p-name">Blue</div>
+                        <div id="stat_blue" class="p-score">পাকা: 0/4</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Power-Ups Bar (Visible in Power Dice Mode) -->
+        <div id="powerupsBar" class="powerups-bar" style="display: none;">
+            <button id="btnPowerShield" class="powerup-btn" title="গুটিতে শিল্ড লাগান">
+                <span>🛡️ শিল্ড</span>
+                <span id="shieldCount" class="brand-badge">1</span>
+            </button>
+            <button id="btnPowerReroll" class="powerup-btn" title="ডাইস আবার ঘোরান">
+                <span>🔄 রি-রোল</span>
+                <span id="rerollCount" class="brand-badge">1</span>
+            </button>
+            <button id="btnPowerJump" class="powerup-btn" title="+২ ঘর লাফ দিন">
+                <span>⚡ জাম্প (+২)</span>
+                <span id="jumpCount" class="brand-badge">1</span>
+            </button>
+        <!-- Fun Interactive Emoji & Quick Chat Bar -->
+        <div class="emoji-bar" title="খেলার মাঝে ইমোজি ছুঁড়ে মারুন!">
+            <button class="emoji-btn" data-emoji="🍅" title="টমেটো মারুন">🍅</button>
+            <button class="emoji-btn" data-emoji="🥚" title="ডিম মারুন">🥚</button>
+            <button class="emoji-btn" data-emoji="🎉" title="পার্টি পপার">🎉</button>
+            <button class="emoji-btn" data-emoji="😂" title="হাসি">😂</button>
+            <button class="emoji-btn" data-emoji="🔥" title="আগুন">🔥</button>
+            <button class="chat-toggle-btn" id="btnQuickChat" title="কুইক ডায়ালগ">💬 চ্যাট</button>
+        </div>
+
+        <!-- Quick Chat Dialog Quotes Popup -->
+        <div class="quick-chat-popup" id="quickChatPopup" style="display: none;">
+            <div class="chat-popup-header">
+                <span>💬 কুইক মেসেজ পাঠান</span>
+                <button class="chat-close-btn" id="btnCloseQuickChat">✕</button>
+            </div>
+            <div class="chat-quotes-list">
+                <button class="chat-quote-item" data-quote="দেরি করিস না, চাল দে! ⏱️">⏱️ দেরি করিস না, চাল দে!</button>
+                <button class="chat-quote-item" data-quote="এবার কিন্তু খেলা হবে! 🔥">🔥 এবার কিন্তু খেলা হবে!</button>
+                <button class="chat-quote-item" data-quote="মাফ দে ভাই, গুটি কাটিস না! 🙏">🙏 মাফ দে ভাই, গুটি কাটিস না!</button>
+                <button class="chat-quote-item" data-quote="এবার তোরে ধরছি! 🎯">🎯 এবার তোরে ধরছি!</button>
+                <button class="chat-quote-item" data-quote="ছক্কা মারো ব্রাদার! 🎲">🎲 ছক্কা মারো ব্রাদার!</button>
+                <button class="chat-quote-item" data-quote="দারুণ চাল দিলি! 👏">👏 দারুণ চাল দিলি!</button>
+            </div>
+        </div>
+        </div> <!-- End of game-stage-wrapper -->
+    </main>
+
+    <!-- ============================================================
+         LUDO KING AUTHENTIC PASS N PLAY SETUP SCREEN (MATCHING SCREENSHOT)
+         ============================================================ -->
+    <div id="modalPlayAndPlay" class="modal-overlay lk-pnp-screen">
+        <div class="lk-pnp-container">
+            
+            <!-- SECTION: SELECT GAME (CLASSIC | TEAM UP) -->
+            <div class="pnp-section-header">
+                <h3 class="pnp-yellow-title">SELECT GAME</h3>
+            </div>
+
+            <div class="pnp-game-modes-deck">
+                
+                <!-- Option 1: Classic -->
+                <div class="pnp-game-row" data-rule="CLASSIC" id="pnpRowClassic">
+                    <div class="pnp-icon-box">
+                        <div class="avatar-vs-combo">
+                            <div class="mini-user-pair">
+                                <span class="u-icon">👤</span>
+                                <span class="u-icon">👤</span>
+                            </div>
+                            <span class="vs-text">VS</span>
+                            <div class="mini-user-pair">
+                                <span class="u-icon">👤</span>
+                                <span class="u-icon">👤</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pnp-toggle-capsule">
+                        <div class="toggle-circle-check"></div>
+                        <span class="mode-capsule-label">Classic</span>
+                    </div>
+                </div>
+
+                <!-- Option 2: Classic Team Up (Selected by Default) -->
+                <div class="pnp-game-row active" data-rule="TEAM_2V2" id="pnpRowTeamUp">
+                    <div class="pnp-icon-box">
+                        <div class="avatar-vs-combo">
+                            <div class="mini-user-pair duo">
+                                <span class="u-icon">👥</span>
+                            </div>
+                            <span class="vs-text">VS</span>
+                            <div class="mini-user-pair duo">
+                                <span class="u-icon">👥</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pnp-toggle-capsule">
+                        <div class="toggle-circle-check active">✔</div>
+                        <div class="team-label-wrap">
+                            <small class="team-sub">Classic</small>
+                            <span class="mode-capsule-label">Team Up</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PLAYER COUNT SELECTION FOR CLASSIC / QUICK -->
+            <div class="pnp-players-count-deck" id="pnpPlayerCountDeck" style="display: none;">
+                <span class="p-count-lbl">প্লেয়ার সংখ্যা:</span>
+                <div class="p-count-pills">
+                    <button class="count-pill" data-count="2">2 Players</button>
+                    <button class="count-pill" data-count="3">3 Players</button>
+                    <button class="count-pill active" data-count="4">4 Players</button>
+                </div>
+            </div>
+
+            <!-- BOTTOM ACTION: NEXT BUTTON & BACK TO HOME ARROW -->
+            <div class="pnp-bottom-actions">
+                <button class="lk-btn-next" id="btnStartPnPGame">
+                    <span>Next</span>
+                </button>
+            </div>
+
+            <!-- Bottom Left Yellow Back Button (as in screenshot) -->
+            <button class="lk-back-round-btn" id="btnClosePnPModal" title="পিছনে যান">
+                <span class="back-arrow-icon">↩</span>
+            </button>
+
+            <!-- Hidden input to store selected mode & players -->
+            <input type="hidden" id="selectPnPRules" value="TEAM_2V2">
+            <input type="hidden" id="selectPnPCount" value="4">
+        </div>
+    </div>
+
+    <!-- ============================================================
+         LUDO KING AUTHENTIC TEAM UP SCREEN (MATCHING SCREENSHOT)
+         ============================================================ -->
+    <div id="modalTeamUpSetup" class="modal-overlay lk-teamup-screen">
+        <div class="lk-teamup-container">
+
+            <!-- Header Title: CHOOSE COLOR AND NAME -->
+            <div class="teamup-header-title">
+                <h3 class="teamup-gold-heading">CHOOSE COLOR AND NAME</h3>
+                <button class="pnp-help-circle" title="Help">?</button>
+            </div>
+
+            <!-- Central Team Up Setup Card Box -->
+            <div class="teamup-card-deck">
+                
+                <!-- TEAM A (Blue + Green) -->
+                <div class="team-block-row team-a-row">
+                    <!-- Left Hanging Team Badge -->
+                    <div class="hanging-badge-wrap">
+                        <div class="hanging-threads"></div>
+                        <div class="team-round-badge badge-blue">
+                            <span class="badge-sub">TEAM</span>
+                            <span class="badge-letter">A</span>
+                        </div>
+                    </div>
+
+                    <!-- Players Input Group for Team A -->
+                    <div class="team-players-inputs">
+                        <!-- Blue -->
+                        <div class="player-slot-row">
+                            <div class="color-pin-bubble pin-cyan" title="Blue Color">
+                                <span class="pin-dot dot-cyan"></span>
+                            </div>
+                            <input type="text" class="player-name-dashed-input" id="teamPlayer1" value="Team A" maxlength="12">
+                            <div class="dice-icon-slot">🎲</div>
+                        </div>
+
+                        <!-- Green -->
+                        <div class="player-slot-row">
+                            <div class="color-pin-bubble pin-green" title="Green Color">
+                                <span class="pin-dot dot-green"></span>
+                            </div>
+                            <input type="text" class="player-name-dashed-input" id="teamPlayer3" value="Team A" maxlength="12">
+                            <div class="dice-icon-slot">🎲</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Golden Center VS Divider -->
+                <div class="teamup-vs-divider">
+                    <div class="vs-line"></div>
+                    <div class="vs-gold-bubble">
+                        <span>VS</span>
+                    </div>
+                    <div class="vs-line"></div>
+                </div>
+
+                <!-- TEAM B (Red + Yellow) -->
+                <div class="team-block-row team-b-row">
+                    <!-- Left Hanging Team Badge -->
+                    <div class="hanging-badge-wrap">
+                        <div class="hanging-threads"></div>
+                        <div class="team-round-badge badge-red">
+                            <span class="badge-sub">TEAM</span>
+                            <span class="badge-letter">B</span>
+                        </div>
+                    </div>
+
+                    <!-- Players Input Group for Team B -->
+                    <div class="team-players-inputs">
+                        <!-- Red -->
+                        <div class="player-slot-row">
+                            <div class="color-pin-bubble pin-red" title="Red Color">
+                                <span class="pin-dot dot-red"></span>
+                            </div>
+                            <input type="text" class="player-name-dashed-input" id="teamPlayer2" value="Team B" maxlength="12">
+                            <div class="dice-icon-slot">🎲</div>
+                        </div>
+
+                        <!-- Yellow -->
+                        <div class="player-slot-row">
+                            <div class="color-pin-bubble pin-yellow" title="Yellow Color">
+                                <span class="pin-dot dot-yellow"></span>
+                            </div>
+                            <input type="text" class="player-name-dashed-input" id="teamPlayer4" value="Team B" maxlength="12">
+                            <div class="dice-icon-slot">🎲</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Friendly Kill Checkbox Option -->
+                <div class="friendly-kill-wrap" id="wrapFriendlyKill">
+                    <label class="friendly-checkbox-label">
+                        <span class="custom-chk-box" id="chkFriendlyKill"></span>
+                        <span class="friendly-kill-text">Friendly Kill</span>
+                    </label>
+                </div>
+
+            </div>
+
+            <!-- Two Launch Buttons: Play (All In) & Play - One Token Out - -->
+            <div class="teamup-action-buttons">
+                <!-- Button 1: Normal Play -->
+                <button class="lk-play-pill-btn normal" id="btnStartTeamClassic">
+                    <span>Play</span>
+                </button>
+
+                <!-- Button 2: Big Highlighted Play - One Token Out - -->
+                <button class="lk-play-pill-btn one-token active-glow" id="btnStartTeamOneToken">
+                    <span class="play-main-txt">Play</span>
+                    <span class="play-sub-txt">- One Token Out -</span>
+                </button>
+            </div>
+
+            <!-- Bottom Left Yellow Round Back Button -->
+            <button class="lk-back-round-btn" id="btnCloseTeamUpModal" title="পিছনে যান">
+                <span class="back-arrow-icon">↩</span>
+            </button>
+
+        </div>
+    </div>
+
+    <!-- Modal: New Game / Settings -->
+    <div id="modalNewGame" class="modal-overlay">
+        <div class="modal-card">
+            <h2>⚙️ নতুন গেম সেটিংস</h2>
+            <p>আপনার পছন্দের মোড ও নিয়ম বেছে নিন</p>
+
+            <div class="form-group">
+                <label>গেম মোড (Game Mode):</label>
+                <select id="selectMode" class="select-custom">
+                    <option value="CLASSIC">ক্লাসিক মোড (Ludo King এর নিয়ম)</option>
+                    <option value="TEAM_2V2">টিম ২ বনাম ২ (Team 2v2 Duo)</option>
+                    <option value="QUICK_RUSH">⚡ কুইক রাশ (২টি গুটি, দ্রুত ৫ মিনিটের ম্যাচ)</option>
+                    <option value="POWER_DICE">✨ পাওয়ার ডাইস (শিল্ড, রি-রোল, জাম্প)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>প্লেয়ার সংখ্যা:</label>
+                <select id="selectPlayers" class="select-custom">
+                    <option value="4">৪ জন প্লেয়ার (Full Board / 2v2)</option>
+                    <option value="2">২ জন প্লেয়ার (1 vs 1 Battle)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>খেলার ধরণ:</label>
+                <select id="selectVs" class="select-custom">
+                    <option value="vs_ai">বনাম স্মার্ট রোবট (Play vs AI)</option>
+                    <option value="pass_play">পাস অ্যান্ড প্লে (বন্ধুদের সাথে লোকাল)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="groupBotDifficulty">
+                <label>রোবট লেভেল (Bot Difficulty):</label>
+                <select id="selectBotDifficulty" class="select-custom">
+                    <option value="easy">সহজ (Casual / Easy)</option>
+                    <option value="medium" selected>সাধারণ (Balanced / Medium)</option>
+                    <option value="hard">কঠিন (Pro Champion / Hard)</option>
+                </select>
+            </div>
+
+            <button id="btnStartCustomGame" class="btn-primary">খেলা শুরু করুন</button>
+            <button class="btn-secondary" data-close="modalNewGame" style="margin-top: 10px;">বাতিল করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Victory Celebration -->
+    <div id="modalVictory" class="modal-overlay">
+        <div class="modal-card gold-border">
+            <div class="victory-crown-stage" style="font-size: 3.5rem; margin-bottom: 8px;">👑</div>
+            <h2>🏆 ম্যাচ সম্পন্ন!</h2>
+            <p id="victoryText">অভিনন্দন! আপনি জয়লাভ করেছেন!</p>
+            <div class="modal-button-stack" style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+                <button id="btnRematchGame" class="btn-primary gold-glow">🔄 রিম্যাচ (আবার খেলুন)</button>
+                <button id="btnPlayAgain" class="btn-secondary" style="display:none;">আবার খেলুন</button>
+                <button id="btnVictoryToHome" class="btn-secondary">🏠 মূল মেনু (হোম স্ক্রিন)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Exit Game -->
+    <div id="modalConfirmExit" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>⚠️ খেলা থেকে প্রস্থান</h2>
+                <button class="modal-close-icon" id="btnCloseConfirmExit">✕</button>
+            </div>
+            <p>আপনি কি চলমান খেলাটি বন্ধ করে হোম স্ক্রিনে ফিরে যেতে চান? চলমান খেলার প্রগ্রেস সংরক্ষণ হবে না।</p>
+            <div class="modal-button-stack" style="display: flex; gap: 10px; margin-top: 18px;">
+                <button id="btnResumeGame" class="btn-primary" style="flex: 1;">▶️ চালিয়ে যান</button>
+                <button id="btnConfirmQuitToHome" class="btn-secondary red-btn" style="flex: 1;">🚪 হোম স্ক্রিন</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Online Lobby & Matchmaking -->
+    <div id="modalOnlineLobby" class="modal-overlay">
+        <div class="modal-card gold-border">
+            <div class="modal-header-row">
+                <h2>🌐 অনলাইন ম্যাচমেকিং ও রুম</h2>
+                <button class="modal-close-icon" data-close="modalOnlineLobby">✕</button>
+            </div>
+            <div class="online-status-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 6px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-bottom: 14px;">
+                <span class="status-pulse-dot" style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e;"></span>
+                সার্ভার স্ট্যাটাস: অনলাইন (লোকাল ও গ্লোবাল প্র্যাকটিস রেডি)
+            </div>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 16px;">সারা বিশ্বের প্লেয়ারদের সাথে দ্রুত ম্যাচ খেলুন অথবা বন্ধুদের সাথে প্রাইভেট রুমে যুক্ত হন।</p>
+            
+            <div class="online-options-deck" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Option 1: Quick Online Matchmaking -->
+                <div class="online-card-action" id="btnOnlineQuickMatch" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 14px; cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <strong style="color: #facc15; font-size: 1.05rem;">⚡ কুইক অনলাইন ম্যাচ (Quick Match)</strong>
+                        <span style="font-size: 1.3rem;">🌍</span>
+                    </div>
+                    <small style="color: #94a3b8; display: block; margin-top: 4px;">৪ জন গ্লোবাল প্লেয়ারের সাথে তাত্ক্ষণিক ১v৩ অনলাইন যুদ্ধ শুরু করুন</small>
+                </div>
+
+                <!-- Option 2: 1v1 Fast Duel -->
+                <div class="online-card-action" id="btnOnline1v1" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 14px; cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <strong style="color: #38bdf8; font-size: 1.05rem;">⚔️ ১ বনাম ১ ডুয়েল (1 vs 1 Battle)</strong>
+                        <span style="font-size: 1.3rem;">🎯</span>
+                    </div>
+                    <small style="color: #94a3b8; display: block; margin-top: 4px;">সরাসরি ২ জনের তীব্র মুখোমুখি প্রতিযোগিতা</small>
+                </div>
+
+                <!-- Option 3: Private Room with Friends -->
+                <div class="online-card-action" id="btnOnlinePrivateRoom" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 14px; cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <strong style="color: #a855f7; font-size: 1.05rem;">🔒 বন্ধুদের প্রাইভেট রুম (Private Room)</strong>
+                        <span style="font-size: 1.3rem;">🔑</span>
+                    </div>
+                    <small style="color: #94a3b8; display: block; margin-top: 4px;">রুম কোড তৈরি করুন অথবা বন্ধুর রুম কোড দিয়ে প্রবেশ করুন</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: User Profile -->
+    <div id="modalUserProfile" class="modal-overlay">
+        <div class="modal-card lk-modal-sheet">
+            <div class="modal-header-row">
+                <h2>👤 প্লেয়ার প্রোফাইল</h2>
+                <button class="modal-close-icon" data-close="modalUserProfile">✕</button>
+            </div>
+            <div class="profile-avatar-select-deck">
+                <div class="avatar-current-preview">
+                    <img id="profileCurrentAvatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23e11d48'/><circle cx='50' cy='38' r='20' fill='%23fed7aa'/><path d='M25 85 C25 62 75 62 75 85 Z' fill='%231e3a8a'/><rect x='36' y='32' width='28' height='8' rx='4' fill='%23000'/><polygon points='42,20 50,12 58,20 54,28 46,28' fill='%23f59e0b'/></svg>" class="lk-avatar-img large" alt="Avatar">
+                    <span class="user-level-badge-large" id="profileLevelText">Level 1</span>
+                </div>
+                <div class="avatar-picker-grid">
+                    <button class="avatar-pick-btn active" data-avatar="king" title="কিং অবতার">👑</button>
+                    <button class="avatar-pick-btn" data-avatar="tiger" title="রয়্যাল টাইগার">🐯</button>
+                    <button class="avatar-pick-btn" data-avatar="boy" title="প্লেয়ার বয়">👦</button>
+                    <button class="avatar-pick-btn" data-avatar="girl" title="প্লেয়ার গার্ল">👧</button>
+                    <button class="avatar-pick-btn" data-avatar="ninja" title="সাইবার নিনজা">🥷</button>
+                    <button class="avatar-pick-btn" data-avatar="robot" title="রোবট চ্যাম্প">🤖</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>আপনার নাম (Player Name):</label>
+                <div class="input-with-btn">
+                    <input type="text" id="inputPlayerName" class="input-text-modern" value="Pro Player BD" maxlength="15">
+                    <button id="btnSaveProfileName" class="btn-small-gold">সেভ</button>
+                </div>
+            </div>
+            <div class="profile-stats-grid">
+                <div class="stat-pill">
+                    <span class="st-num" id="statMatchesPlayed">24</span>
+                    <span class="st-lbl">ম্যাচ খেলেছেন</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="st-num" id="statMatchesWon">18</span>
+                    <span class="st-lbl">ম্যাচ জয়</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="st-num" id="statWinRate">75%</span>
+                    <span class="st-lbl">উইন রেট</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="st-num" id="statTotalCoins">5,050</span>
+                    <span class="st-lbl">কয়েন ব্যালেন্স</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Home Settings -->
+    <div id="modalHomeSettings" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>⚙️ গেম সেটিংস</h2>
+                <button class="modal-close-icon" data-close="modalHomeSettings">✕</button>
+            </div>
+            <div class="setting-toggle-row">
+                <span>🔊 সাউন্ড এফেক্টস (Sound FX):</span>
+                <button id="toggleSoundSettings" class="btn-toggle active">চালু (ON)</button>
+            </div>
+            <div class="setting-toggle-row">
+                <span>🤖 অটো-প্লে রোবট মোড:</span>
+                <button id="toggleAutoPlaySettings" class="btn-toggle">বন্ধ (OFF)</button>
+            </div>
+
+            <div class="settings-action-btns">
+                <button id="btnOpenRulesFromSettings" class="btn-secondary">📖 গেমের নিয়মাবলী দেখুন</button>
+                <button id="btnResetGameData" class="btn-secondary red-btn">🔄 গেম ডেটা রিসেট</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Mailbox -->
+    <div id="modalMailbox" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>✉️ বার্তা ও উপহার (Mailbox)</h2>
+                <button class="modal-close-icon" data-close="modalMailbox">✕</button>
+            </div>
+            <div class="mail-items-list">
+                <div class="mail-item">
+                    <div class="mail-icon">🎁</div>
+                    <div class="mail-content">
+                        <h4>ওয়েলকাম টু Ludo X BD!</h4>
+                        <p>লুডু এক্স পরিবারের পক্ষ থেকে আপনাকে ১,০০০ কয়েন উপহার!</p>
+                    </div>
+                    <button class="btn-claim-small claimed" disabled>সংগৃহীত ✔</button>
+                </div>
+                <div class="mail-item">
+                    <div class="mail-icon">🎉</div>
+                    <div class="mail-content">
+                        <h4>উইকেন্ড বোনাস গিফট!</h4>
+                        <p>আজকের বিশেষ রিওয়ার্ড: ৫০০ কয়েন সংগ্রহ করুন।</p>
+                    </div>
+                    <button class="btn-claim-small" id="btnClaimMailReward">দাবি করুন</button>
+                </div>
+            </div>
+            <button class="btn-secondary" data-close="modalMailbox" style="margin-top: 14px;">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Starter Pack -->
+    <div id="modalStarterPack" class="modal-overlay">
+        <div class="modal-card gold-border">
+            <div class="modal-header-row">
+                <h2>🏷️ স্পেশাল স্টার্টার প্যাক</h2>
+                <button class="modal-close-icon" data-close="modalStarterPack">✕</button>
+            </div>
+            <div class="starter-pack-banner">
+                <div class="discount-badge">৮০% ছাড়!</div>
+                <div class="pack-items-visual">🪙 50,000 + 💎 100 + 👑 King Pawn</div>
+            </div>
+            <p>আপনার গেমপ্লেকে প্রো লেভেলে নিয়ে যান এই এক্সক্লুসিভ স্টার্টার প্যাকেজে!</p>
+            <button class="btn-primary gold-glow" id="btnClaimStarterPack">🎉 ফ্রি আনলক করুন (Limited Offer)</button>
+            <button class="btn-secondary" data-close="modalStarterPack">বাতিল করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: King Pass (VIP) -->
+    <div id="modalKingPass" class="modal-overlay">
+        <div class="modal-card gold-border">
+            <div class="modal-header-row">
+                <h2>👑 KING PASS (সিজন ২১)</h2>
+                <button class="modal-close-icon" data-close="modalKingPass">✕</button>
+            </div>
+            <div class="vip-perks-list">
+                <div class="vip-perk-item">✨ এক্সক্লুসিভ গোল্ডেন ক্রাউন টোকেন ফ্রেম</div>
+                <div class="vip-perk-item">⚡ প্রতিদিন ২ গুণ বেশি এক্সপি ও কয়েন বুস্ট</div>
+                <div class="vip-perk-item">🚫 সম্পূর্ণ বিজ্ঞাপনমুক্ত স্মুথ গেমপ্লে</div>
+                <div class="vip-perk-item">🎨 বিশেষ ভিআইপি ডাইস স্কিন ও স্পার্কল অ্যানিমেশন</div>
+            </div>
+            <button class="btn-primary gold-glow" id="btnActivateKingPass">👑 ভিআইপি পাস সক্রিয় করুন</button>
+            <button class="btn-secondary" data-close="modalKingPass">বাতিল করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Live TV Spectator -->
+    <div id="modalLiveTV" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>📺 Ludo Live (লাইভ স্পেকটেটর)</h2>
+                <button class="modal-close-icon" data-close="modalLiveTV">✕</button>
+            </div>
+            <div class="live-match-card">
+                <div class="live-badge-glow">🔴 LIVE STREAM</div>
+                <h4>চ্যাম্পিয়নশিপ গ্র্যান্ড ফিনালে ২০২৬</h4>
+                <div class="live-teams-vs">
+                    <span>👑 King_BD (Lv 42)</span>
+                    <strong class="vs-txt">VS</strong>
+                    <span>🔥 LudoMaster (Lv 38)</span>
+                </div>
+                <p>দর্শকের সংখ্যা: ১২,৫৪০ জন লাইভ দেখছেন</p>
+            </div>
+            <button class="btn-primary" id="btnWatchLiveMatch">ম্যাচ স্পেকটেট করুন (Watch Live)</button>
+            <button class="btn-secondary" data-close="modalLiveTV">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: No Ads -->
+    <div id="modalNoAds" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>🚫 নো অ্যাডস (No Ads)</h2>
+                <button class="modal-close-icon" data-close="modalNoAds">✕</button>
+            </div>
+            <p>বিরক্তিকর পপ-আপ অ্যাডস ছাড়া নিরবচ্ছিন্নভাবে লুডু খেলুন। সাথে পাচ্ছেন <strong>১০,০০০ বোনাস কয়েন</strong>!</p>
+            <button class="btn-primary" id="btnActivateNoAds">🚫 বিজ্ঞাপন মুক্ত করুন (Free Perk)</button>
+            <button class="btn-secondary" data-close="modalNoAds">বাতিল করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Missions -->
+    <div id="modalMissions" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>🎯 দৈনিক মিশন (Daily Missions)</h2>
+                <button class="modal-close-icon" data-close="modalMissions">✕</button>
+            </div>
+            <div class="missions-list">
+                <div class="mission-item">
+                    <div class="m-info">
+                        <strong>ডাইসে ৩ বার ৬ মারুন</strong>
+                        <div class="progress-bar-wrap"><div class="p-bar-fill" style="width: 100%;"></div></div>
+                        <small>৩ / ৩ সম্পন্ন</small>
+                    </div>
+                    <button class="btn-claim-small" id="btnClaimMission1">🪙 ৫০০ দাবি করুন</button>
+                </div>
+                <div class="mission-item">
+                    <div class="m-info">
+                        <strong>প্রতিপক্ষের ১টি গুটি কাটুন</strong>
+                        <div class="progress-bar-wrap"><div class="p-bar-fill" style="width: 100%;"></div></div>
+                        <small>১ / ১ সম্পন্ন</small>
+                    </div>
+                    <button class="btn-claim-small" id="btnClaimMission2">🪙 ১,০০০ দাবি করুন</button>
+                </div>
+                <div class="mission-item">
+                    <div class="m-info">
+                        <strong>যেকোনো ১টি ম্যাচ জিতুন</strong>
+                        <div class="progress-bar-wrap"><div class="p-bar-fill" style="width: 100%;"></div></div>
+                        <small>১ / ১ সম্পন্ন</small>
+                    </div>
+                    <button class="btn-claim-small" id="btnClaimMission3">💎 ১০ ডায়মন্ড দাবি করুন</button>
+                </div>
+            </div>
+            <button class="btn-secondary" data-close="modalMissions" style="margin-top: 14px;">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Help / Rules Guide -->
+    <div id="modalHelpGuide" class="modal-overlay">
+        <div class="modal-card lk-modal-sheet">
+            <div class="modal-header-row">
+                <h2>📖 গেমের নিয়মাবলী (How to Play)</h2>
+                <button class="modal-close-icon" data-close="modalHelpGuide">✕</button>
+            </div>
+            <div class="rules-scrollable">
+                <div class="rule-point">
+                    <strong>১. গুটি বের হওয়া:</strong> ডাইসে <strong>৬ (Six)</strong> পড়লে বেস থেকে একটি গুটি বোর্ডে বের হবে।
+                </div>
+                <div class="rule-point">
+                    <strong>২. অতিরিক্ত বোনাস চাল:</strong> ৬ পড়লে, প্রতিপক্ষের গুটি কাটলে বা নিজের গুটি সেন্টারে (হোম ট্রায়াঙ্গেল) ঢোকালে প্লেয়ার +১ অতিরিক্ত চাল পাবে।
+                </div>
+                <div class="rule-point">
+                    <strong>৩. টানা ৩ বার ৬ এর রুল:</strong> টানা ৩ বার ৬ পড়লে ৩য় চালটি স্বয়ংক্রিয়ভাবে বাতিল হয়ে যাবে।
+                </div>
+                <div class="rule-point">
+                    <strong>৪. নিরাপদ ঘর (★ স্টার):</strong> বোর্ডের ৮টি স্টার চিহ্নিত ঘরে কোনো গুটি কাটা যাবে না।
+                </div>
+                <div class="rule-point">
+                    <strong>৫. টিম ২ বনাম ২ মোড:</strong> টিমমেটরা একে অপরকে কাটবে না এবং একসাথে টিম শিল্ড তৈরি করবে!
+                </div>
+            </div>
+            <button class="btn-primary" data-close="modalHelpGuide">বুঝতে পেরেছি</button>
+        </div>
+    </div>
+
+    <!-- Modal: 7 Up 7 Down Mini Game -->
+    <div id="modal7UpDown" class="modal-overlay">
+        <div class="modal-card gold-border">
+            <div class="modal-header-row">
+                <h2>7️⃣ 7 Up 7 Down মিনি গেম</h2>
+                <button class="modal-close-icon" data-close="modal7UpDown">✕</button>
+            </div>
+            <p>২টি ডাইসের যোগফল প্রেডিক্ট করুন এবং আপনার কয়েন ডাবল করুন!</p>
+            <div class="seven-choices-deck">
+                <button class="choice-seven-btn" data-choice="down">
+                    <span class="c-title">7 DOWN</span>
+                    <small>২ থেকে ৬ (২ গুণ)</small>
+                </button>
+                <button class="choice-seven-btn active" data-choice="seven">
+                    <span class="c-title">LUCKY 7</span>
+                    <small>হুবহু ৭ (৩ গুণ!)</small>
+                </button>
+                <button class="choice-seven-btn" data-choice="up">
+                    <span class="c-title">7 UP</span>
+                    <small>৮ থেকে ১২ (২ গুণ)</small>
+                </button>
+            </div>
+            <div class="mini-dice-stage">
+                <div class="mini-dice-box" id="miniDice1">🎲</div>
+                <div class="mini-dice-sum" id="miniDiceSum">যোগফল: ?</div>
+                <div class="mini-dice-box" id="miniDice2">🎲</div>
+            </div>
+            <div class="bet-selection-row">
+                <span>বাজি:</span>
+                <button class="bet-chip active" data-bet="100">🪙 100</button>
+                <button class="bet-chip" data-bet="500">🪙 500</button>
+                <button class="bet-chip" data-bet="1000">🪙 1,000</button>
+            </div>
+            <button class="btn-primary gold-glow" id="btnRoll7UpDown">🎲 ডাইস রোল করুন!</button>
+        </div>
+    </div>
+
+    <!-- Modal: Snakes & Ladders -->
+    <div id="modalSnakeLadder" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>🐍🪜 সাপ-লুডু (Snakes & Ladders)</h2>
+                <button class="modal-close-icon" data-close="modalSnakeLadder">✕</button>
+            </div>
+            <p>ক্লাসিক সাপ-লুডু মোড শীঘ্রই নতুন আপডেটে যুক্ত হতে যাচ্ছে!</p>
+            <div class="snake-ladder-preview-box">
+                <span>🪜 মই বেয়ে শীর্ষে উঠুন, 🐍 সাপের মুখ থেকে বাঁচুন!</span>
+            </div>
+            <button class="btn-primary" data-close="modalSnakeLadder">ঠিক আছে</button>
+        </div>
+    </div>
+
+    <!-- Modal: Tournament Season 21 -->
+    <div id="modalTournament" class="modal-overlay">
+        <div class="modal-card gold-border">
+            <div class="modal-header-row">
+                <h2>👑 TOURNAMENT (SEASON 21)</h2>
+                <button class="modal-close-icon" data-close="modalTournament">✕</button>
+            </div>
+            <div class="tourney-hero-badge">
+                <div class="th-trophy">🏆</div>
+                <h3>গ্র্যান্ড চ্যাম্পিয়নশিপ প্রাইজপুল</h3>
+                <div class="th-prize">🪙 ১,০০,০০০ কয়েন + 💎 ৫০০ ডায়মন্ড</div>
+            </div>
+            <p>টুর্নামেন্ট শুরু হবে আগামী শুক্রবার রাত ৮:০০ টায়। প্রি-রেজিস্ট্রেশন করে আপনার সিট বুক করুন!</p>
+            <button class="btn-primary gold-glow" id="btnRegisterTournament">🎟️ ফ্রি রেজিস্ট্রেশন করুন</button>
+            <button class="btn-secondary" data-close="modalTournament">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Bottom Tab - Events -->
+    <div id="modalEventsTab" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>📅 বিশেষ ইভেন্টসমূহ (Events)</h2>
+                <button class="modal-close-icon" data-close="modalEventsTab">✕</button>
+            </div>
+            <div class="events-list">
+                <div class="event-card-item">
+                    <h4>🔥 উইকেন্ড ব্লিটজ কাপ</h4>
+                    <p>শনিবার ও রবিবার প্রতি জয়ে ডাবল কয়েন ও লিডারবোর্ড র‍্যাঙ্কিং পয়েন্ট!</p>
+                </div>
+                <div class="event-card-item">
+                    <h4>💎 ডায়মন্ড রাশ চ্যালেঞ্জ</h4>
+                    <p>টানা ৫টি ম্যাচ জিতে জিতে নিন ৫০টি ফ্রি ডায়মন্ড।</p>
+                </div>
+            </div>
+            <button class="btn-secondary" data-close="modalEventsTab">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Bottom Tab - Social -->
+    <div id="modalSocialTab" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>💬 ফ্রেন্ডস ও সোশ্যাল (Social)</h2>
+                <button class="modal-close-icon" data-close="modalSocialTab">✕</button>
+            </div>
+            <div class="social-room-section">
+                <h4>🔒 প্রাইভেট রুম তৈরি / জয়েন</h4>
+                <div class="input-with-btn">
+                    <input type="text" id="inputRoomCode" class="input-text-modern" placeholder="৬ সংখ্যার রুম কোড লিখুন" maxlength="6">
+                    <button id="btnJoinPrivateRoom" class="btn-small-gold">জয়েন</button>
+                </div>
+                <button id="btnCreatePrivateRoom" class="btn-primary" style="margin-top: 10px;">➕ নতুন রুম কোড তৈরি করুন</button>
+            </div>
+            <div class="friends-list-header">
+                <h4>👥 অনলাইন বন্ধুরা (Online Friends)</h4>
+            </div>
+            <div class="friend-row">
+                <span>🟢 সাকিব_কিং (Lv 12)</span>
+                <button class="btn-claim-small" onclick="alert('🎁 বন্ধুকে ১০০ কয়েন উপহার পাঠানো হয়েছে!');">গিফট পাঠান</button>
+            </div>
+            <div class="friend-row">
+                <span>🟢 তামান্না_লুডু (Lv 8)</span>
+                <button class="btn-claim-small" onclick="alert('🎁 বন্ধুকে ১০০ কয়েন উপহার পাঠানো হয়েছে!');">গিফট পাঠান</button>
+            </div>
+            <button class="btn-secondary" data-close="modalSocialTab" style="margin-top: 14px;">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Bottom Tab - Inventory -->
+    <div id="modalInventoryTab" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>🎲 ইনভেন্টরি ও স্কিনস (Inventory)</h2>
+                <button class="modal-close-icon" data-close="modalInventoryTab">✕</button>
+            </div>
+            <div class="inventory-section">
+                <h4>ডাইস কালেকশন (Dice Skins)</h4>
+                <div class="inventory-grid">
+                    <div class="inv-item active" data-dice="classic">
+                        <div class="inv-art">🎲</div>
+                        <span>ক্লাসিক হোয়াইট (Equipped)</span>
+                    </div>
+                    <div class="inv-item" data-dice="gold">
+                        <div class="inv-art">✨</div>
+                        <span>গোল্ডেন ক্রাউন</span>
+                    </div>
+                    <div class="inv-item" data-dice="neon">
+                        <div class="inv-art">⚡</div>
+                        <span>নিয়ন গ্লো</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary" data-close="modalInventoryTab">সেভ ও বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Bottom Tab - Store -->
+    <div id="modalStoreTab" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>🛒 গেম স্টোর (Game Store)</h2>
+                <button class="modal-close-icon" data-close="modalStoreTab">✕</button>
+            </div>
+            <div class="store-grid">
+                <div class="store-item-card">
+                    <div class="st-icon">🪙</div>
+                    <strong>১০,০০০ কয়েন</strong>
+                    <button class="btn-small-gold" id="btnBuyCoins10k">+ সংগ্রহ করুন</button>
+                </div>
+                <div class="store-item-card">
+                    <div class="st-icon">🪙</div>
+                    <strong>৫০,০০০ কয়েন</strong>
+                    <button class="btn-small-gold" id="btnBuyCoins50k">+ সংগ্রহ করুন</button>
+                </div>
+                <div class="store-item-card">
+                    <div class="st-icon">💎</div>
+                    <strong>৫০ ডায়মন্ড</strong>
+                    <button class="btn-small-gold" id="btnBuyGems50">+ সংগ্রহ করুন</button>
+                </div>
+                <div class="store-item-card">
+                    <div class="st-icon">💎</div>
+                    <strong>২০০ ডায়মন্ড</strong>
+                    <button class="btn-small-gold" id="btnBuyGems200">+ সংগ্রহ করুন</button>
+                </div>
+            </div>
+            <button class="btn-secondary" data-close="modalStoreTab" style="margin-top: 14px;">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <!-- Modal: Free Video Ad Simulator -->
+    <div id="modalVideoAd" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header-row">
+                <h2>🎬 স্পনসরড ভিডিও রিওয়ার্ড</h2>
+                <button class="modal-close-icon" id="btnCloseVideoAd" style="display: none;">✕</button>
+            </div>
+            <div class="ad-video-simulator">
+                <div class="ad-countdown-ring" id="adCountdownText">3</div>
+                <div class="ad-sponsor-title">Ludo X BD Special Partner Ad</div>
+                <div class="ad-progress-track">
+                    <div class="ad-progress-fill" id="adProgressBar"></div>
+                </div>
+            </div>
+            <p id="adStatusText">ভিডিওটি শেষ হওয়া পর্যন্ত অপেক্ষা করুন...</p>
+            <button class="btn-primary" id="btnClaimAdReward" style="display: none;">🎁 ১,০০০ কয়েন সংগ্রহ করুন</button>
+        </div>
+    </div>
+
+    <!-- Confetti Canvas for Victory -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Game Scripts -->
+    <script src="js/audio.js"></script>
+    <script src="js/board_data.js"></script>
+    <script src="js/ai_bot.js"></script>
+    <script src="js/game_engine.js"></script>
+    <script src="js/ui_controller.js"></script>
+</body>
+</html>

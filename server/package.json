@@ -1,0 +1,17 @@
+{
+  "name": "ludo-x-bd-server",
+  "version": "1.0.0",
+  "description": "Official Real-time Multiplayer WebSocket Server for Ludo X BD",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "ludo",
+    "multiplayer",
+    "websocket",
+    "game-server"
+  ],
+  "author": "Ludo X BD Team",
+  "license": "MIT"
+}

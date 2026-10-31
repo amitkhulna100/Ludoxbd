@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ludo X BD - Live Game & Download</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #0f172a, #1e1b4b, #020617);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #ffffff;
+        }
+        .hub-card {
+            background: rgba(30, 41, 59, 0.95);
+            border: 2px solid rgba(245, 158, 11, 0.5);
+            border-radius: 24px;
+            padding: 36px 24px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+        }
+        .crown {
+            font-size: 3rem;
+            margin-bottom: 8px;
+            animation: bounce 2s infinite ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #f59e0b;
+            text-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+        .cloud-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #22c55e;
+        }
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .btn-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            text-decoration: none;
+            color: #ffffff;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        .btn-play {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #111827;
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+        }
+        .btn-play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(245, 158, 11, 0.6);
+        }
+        .btn-apk {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+        .btn-apk:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(59, 130, 246, 0.6);
+        }
+        .footer-note {
+            font-size: 0.78rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="hub-card">
+        <div class="crown">👑</div>
+        <h1>LUDO X BD</h1>
+        <p class="subtitle">Bangladeshi #1 Online Multiplayer Ludo</p>
+        
+        <div class="cloud-badge">
+            <span class="pulse-dot"></span>
+            Cloud Live Server
+        </div>
+
+        <div class="action-btns">
+            <a href="/src/index.html" class="btn-action btn-play">
+                <span>🎮</span> ব্রাউজারে খেলুন (Live Web Game)
+            </a>
+            <a href="/download.html" class="btn-action btn-apk">
+                <span>📥</span> এপিকে ডাউনলোড (Download APK)
+            </a>
+        </div>
+
+        <p class="footer-note">
+            মোবাইল বা পিসির যেকোনো ব্রাউজার থেকে সরাসরি খেলা যাবে অথবা অ্যান্ড্রয়েড ফোনে APK ইন্সটল করে খেলা যাবে।
+        </p>
+    </div>
+</body>
+</html>

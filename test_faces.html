@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="src/css/style.css">
+<style>
+body {
+    background: #0b1536;
+    padding: 40px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.test-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    font-family: sans-serif;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<script>
+for (let val = 1; val <= 6; val++) {
+    document.write(`
+        <div class="test-card">
+            <div>show-${val}</div>
+            <div class="personal-dice-box">
+                <div class="dice-3d-scene">
+                    <div class="dice-3d-cube show-${val}">
+                        <div class="dice-3d-face face-1"><div class="pip p5"></div></div>
+                        <div class="dice-3d-face face-2"><div class="pip p1"></div><div class="pip p9"></div></div>
+                        <div class="dice-3d-face face-3"><div class="pip p1"></div><div class="pip p5"></div><div class="pip p9"></div></div>
+                        <div class="dice-3d-face face-4"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                        <div class="dice-3d-face face-5"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p5"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                        <div class="dice-3d-face face-6"><div class="pip p1"></div><div class="pip p3"></div><div class="pip p4"></div><div class="pip p6"></div><div class="pip p7"></div><div class="pip p9"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+}
+</script>
+
+</body>
+</html>

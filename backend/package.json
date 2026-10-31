@@ -1,0 +1,12 @@
+{
+  "name": "ludo-x-bd-server",
+  "version": "1.0.0",
+  "description": "Authoritative Real-Time Multiplayer Backend for Ludo X BD",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/test_multiplayer.js"
+  },
+  "author": "Antigravity & Ludo X BD Team",
+  "license": "ISC"
+}

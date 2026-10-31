@@ -1,0 +1,28 @@
+# Gradle & Android build output
+.gradle/
+build/
+release/
+android-build/build/
+android-build/apk-extracted/
+*.apk
+*.apk.idsig
+*.aab
+
+# Local tooling & binaries
+tools/
+scratch/
+
+# Keystores & sensitive credentials (DO NOT COMMIT)
+*.keystore
+*.jks
+keystore.properties
+
+# IDE & Editor caches
+.idea/
+*.iml
+.vscode/
+
+# OS generated
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,17 @@
+{
+  "name": "Ludo X BD - 3D AAA Gaming Edition",
+  "short_name": "Ludo X BD",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0b10",
+  "theme_color": "#0a0b10",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='128' fill='%230f172a'/><rect x='40' y='40' width='432' height='432' rx='100' fill='none' stroke='%23f59e0b' stroke-width='16'/><circle cx='180' cy='180' r='60' fill='%23ef4444'/><circle cx='332' cy='180' r='60' fill='%2310b981'/><circle cx='180' cy='332' r='60' fill='%233b82f6'/><circle cx='332' cy='332' r='60' fill='%23f59e0b'/><polygon points='256,200 290,270 222,270' fill='%23ffffff'/><text x='256' y='475' font-size='56' font-family='sans-serif' font-weight='900' fill='%23f59e0b' text-anchor='middle'>LUDO X BD</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ludo X BD</string>
+    <string name="game_services_project_id">1029384756</string>
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+    <style name="Theme.FullScreen" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>

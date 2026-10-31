@@ -118,7 +118,31 @@ class NetworkManager {
         if (color === this.myColor) return true;
         if (!this.peerLastSeen) return false;
         const lastSeen = (this.peerLastSeen[color] !== undefined) ? this.peerLastSeen[color] : (this._matchStartTime || 0);
-        return (Date.now() - lastSeen < 60000); // 60 seconds grace period
+        return (Date.now() - lastSeen < 6000); // 6 seconds (3 missed heartbeats)
+    }
+
+    /**
+     * Authoritative Dynamic Active Connected Humans List
+     * Returns connected human players in canonical turn order [red, green, yellow, blue]
+     */
+    getActiveConnectedHumans() {
+        const order = ['red', 'green', 'yellow', 'blue'];
+        const list = (this.matchPlayers && this.matchPlayers.length > 0) ? this.matchPlayers : (this.getUI()?.engine?.players || []);
+        return order.filter(c => {
+            const p = list.find(mp => (mp.color === c || mp.id === c));
+            if (!p) return false;
+            if (this.botColors && this.botColors.includes(c)) return false;
+            return this.isPeerActive(c);
+        });
+    }
+
+    /**
+     * Dynamic Self-Healing Bot Leader Check
+     * Evaluates whether local player is the designated leader for executing/broadcasting bot turns
+     */
+    isCurrentBotLeader() {
+        const activeHumans = this.getActiveConnectedHumans();
+        return activeHumans.length > 0 && activeHumans[0] === this.myColor;
     }
 
     trackPeerActivity(color) {
@@ -162,15 +186,17 @@ class NetworkManager {
             const curTurn = this.currentTurnColor;
             if (!curTurn) return;
 
-            // Instant peer heartbeat/silence check (> 20s silence converts remote player to bot, never interrupts 15s human turn)
-            if (this.peerLastSeen && this.players) {
+            // Instant peer heartbeat/silence check (> 6s silence converts remote player to bot, never interrupts 15s human turn)
+            const playerList = (this.matchPlayers && this.matchPlayers.length > 0) ? this.matchPlayers : (ui.engine.players || []);
+            if (this.peerLastSeen && playerList) {
                 const now = Date.now();
-                this.players.forEach(p => {
-                    if (p.color && p.color !== this.myColor && !this.botColors.includes(p.color)) {
-                        const lastSeen = this.peerLastSeen[p.color] || 0;
-                        if (lastSeen > 0 && (now - lastSeen) > 20000) {
-                            console.warn(`[Peer Inactive] Peer ${p.color} silent for ${now - lastSeen}ms. Converting to Bot...`);
-                            this.convertPlayerToBot(p.color, p.name);
+                playerList.forEach(p => {
+                    const pColor = p.color || p.id;
+                    if (pColor && pColor !== this.myColor && !this.botColors.includes(pColor)) {
+                        const lastSeen = this.peerLastSeen[pColor] || 0;
+                        if (lastSeen > 0 && (now - lastSeen) > 6000) {
+                            console.warn(`[Peer Inactive] Peer ${pColor} silent for ${now - lastSeen}ms. Converting to Bot...`);
+                            this.convertPlayerToBot(pColor, p.name);
                         }
                     }
                 });
@@ -374,6 +400,24 @@ class NetworkManager {
                     pingEl.textContent = `${ping}ms`;
                     pingEl.style.color = (ping < 120) ? '#22c55e' : (ping < 250 ? '#facc15' : '#ef4444');
                 }
+            } else if (msg.topic && msg.topic.startsWith('realtime:ludo_room_') && msg.payload?.response?.status === 'ok') {
+                // Send Phoenix Presence Track packet so Supabase Realtime tracks this client's presence and emits presence_diff on disconnect
+                const ref = String(this.msgRef++);
+                this.sendRaw({
+                    topic: msg.topic,
+                    event: 'presence',
+                    payload: {
+                        type: 'presence',
+                        event: 'track',
+                        payload: {
+                            clientId: this.clientId,
+                            color: this.myColor,
+                            name: this.getUI()?.userStats?.name || 'Player',
+                            onlineAt: Date.now()
+                        }
+                    },
+                    ref: ref
+                });
             }
             return;
         }
@@ -407,6 +451,7 @@ class NetworkManager {
         const player = this.matchPlayers?.find(p => p.id === clientId);
         if (player && player.color) {
             console.log(`[Instant Bot Takeover] Client ${clientId} (${player.color}) disconnected via socket drop. Converting to bot...`);
+            if (this.peerLastSeen) this.peerLastSeen[player.color] = 0;
             this.convertPlayerToBot(player.color, player.name);
         }
     }
@@ -802,14 +847,11 @@ class NetworkManager {
                 const ui = this.getUI();
                 if (ui && ui.engine && ui.engine.players) {
                     // Designate single responder to prevent network flooding and race conditions:
-                    // Preferred: Current turn player. Fallback: First active human peer in canonical order.
-                    const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => 
-                        c !== data.rejoiningColor && !this.botColors.includes(c)
-                    );
-                    const isDesignated = (this.currentTurnColor === this.myColor) ||
-                        (this.myColor === activeHumans[0] && this.currentTurnColor !== activeHumans[0]);
+                    // Preferred: Current turn player (if active and not rejoining), OR the authoritative dynamic Bot Leader.
+                    const isDesignated = (this.currentTurnColor === this.myColor && this.myColor !== data.rejoiningColor) ||
+                        (this.isCurrentBotLeader() && this.currentTurnColor !== this.myColor);
 
-                    if (!isDesignated && activeHumans.length > 0) {
+                    if (!isDesignated) {
                         return;
                     }
 
@@ -1850,12 +1892,6 @@ class NetworkManager {
         try {
             localStorage.setItem('lx_active_online_match_state', JSON.stringify(statePayload));
         } catch (e) {}
-
-        // Broadcast authoritative snapshot on local player move for peer self-healing
-        if (this.isOnlineMatch && this.currentTurnColor === this.myColor) {
-            statePayload.senderId = this.clientId;
-            this.broadcast('MATCH_STATE_SYNC', statePayload);
-        }
     }
 
     updateActiveMatchUI() {
@@ -2884,10 +2920,8 @@ class NetworkManager {
 
         const roll = this.getDeterministicRoll(this.currentRoomCode, turnSeq);
         const isLocalOwner = (color === this.myColor);
-        const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
-        const isBotLeader = (activeHumans[0] === this.myColor);
         const isConnected = this.isPeerActive(color);
-        const shouldBroadcast = isLocalOwner || (isBotLeader && !isConnected);
+        const shouldBroadcast = isLocalOwner || (this.isCurrentBotLeader() && !isConnected);
 
         if (shouldBroadcast) {
             this.broadcast('DICE_ROLLED', {
@@ -2959,10 +2993,8 @@ class NetworkManager {
         if (bestTokenId !== null && bestTokenId !== undefined) {
             console.log(`[Stage B Auto-Move] Selected best legal move token ${bestTokenId} for ${color}`);
             const isLocalOwner = (color === this.myColor);
-            const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
-            const isBotLeader = (activeHumans[0] === this.myColor);
             const isConnected = this.isPeerActive(color);
-            const shouldBroadcast = isLocalOwner || (isBotLeader && !isConnected);
+            const shouldBroadcast = isLocalOwner || (this.isCurrentBotLeader() && !isConnected);
 
             if (shouldBroadcast) {
                 this.moveToken(bestTokenId, color);
@@ -3156,10 +3188,8 @@ class NetworkManager {
         console.log(`[Deterministic Bot Turn] ${botColor} rolling sequence ${this.currentTurnSeq}: ${roll}`);
 
         const isLocalOwner = (botColor === this.myColor);
-        const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
-        const isBotLeader = (activeHumans[0] === this.myColor);
         const isConnected = this.isPeerActive(botColor);
-        const shouldBroadcast = isLocalOwner || (isBotLeader && !isConnected);
+        const shouldBroadcast = isLocalOwner || (this.isCurrentBotLeader() && !isConnected);
 
         if (shouldBroadcast) {
             this.broadcast('DICE_ROLLED', {
@@ -3217,16 +3247,13 @@ class NetworkManager {
             }
         }
 
-        // When passing turn from a BOT, only the designated bot leader broadcasts the turn change.
+        // When passing turn from a BOT or disconnected player, only the designated bot leader broadcasts the turn change.
         // All clients still update their own local state via handleTurnChanged.
         const isFromBot = (this.botColors && this.botColors.includes(fromColor));
+        const isFromDisconnectedHuman = !this.isPeerActive(fromColor);
         let shouldBroadcast = true;
-        if (isFromBot) {
-            const activeHumans = ['red', 'green', 'yellow', 'blue'].filter(c => !this.botColors.includes(c));
-            const isBotLeader = (activeHumans[0] === this.myColor);
-            if (!isBotLeader && activeHumans.length > 0) {
-                shouldBroadcast = false;
-            }
+        if (isFromBot || isFromDisconnectedHuman) {
+            shouldBroadcast = this.isCurrentBotLeader();
         }
 
         console.log(`[Online Match Authoritative Turn] Passing turn: ${fromColor} -> ${nextColor} (broadcast: ${shouldBroadcast})`);

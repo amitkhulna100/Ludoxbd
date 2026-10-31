@@ -2757,7 +2757,9 @@ class LudoUIController {
             }
         });
 
-        // Fast, snappy 260ms 3D tumble for responsive real-time feel
+        // Fast, snappy 3D tumble: 90ms for remote roll (since network transit already elapsed) and 200ms for local roll
+        const isRemoteRoll = window.networkManager && (color !== window.networkManager.myColor);
+        const tumbleDuration = isRemoteRoll ? 90 : 200;
         setTimeout(() => {
             this.isRolling = false;
             ['red', 'green', 'yellow', 'blue'].forEach(c => {
@@ -2836,9 +2838,8 @@ class LudoUIController {
                 this.render();
 
                 // Single Source of Execution for Bot Moves:
-                // Only local owner, or designated Bot Leader if owner is disconnected, executes and broadcasts.
-                const activeHumans = window.networkManager ? ['red', 'green', 'yellow', 'blue'].filter(c => !window.networkManager.botColors.includes(c)) : [];
-                const isBotLeader = (window.networkManager && activeHumans[0] === window.networkManager.myColor);
+                // Only local owner, or designated dynamic Bot Leader if owner is disconnected, executes and broadcasts.
+                const isBotLeader = window.networkManager ? window.networkManager.isCurrentBotLeader() : false;
                 const isConnected = window.networkManager ? window.networkManager.isPeerActive(color) : false;
                 const shouldExecuteAndBroadcast = isLocalPlayer || (isBotLeader && !isConnected);
 
@@ -2892,7 +2893,7 @@ class LudoUIController {
                     window.networkManager.startStageBTokenMove(color, window.networkManager.currentTurnSeq);
                 }
             }
-        }, 260);
+        }, tumbleDuration);
     }
 
     buildAuthoritativePath(token, auth) {
@@ -3226,14 +3227,14 @@ class LudoUIController {
                 if (!fromRemote || isBot) {
                     window.networkManager.passTurnToNext(player.id);
                 } else {
-                    // Remote player safety timeout: If remote peer does not pass turn within 1500ms after move animation finishes,
+                    // Remote player safety timeout: If remote peer does not pass turn within 400ms after move animation finishes,
                     // advance deterministically on all clients so the board never hangs!
                     setTimeout(() => {
                         if (window.networkManager && window.networkManager.isOnlineMatch && window.networkManager.currentTurnColor === player.id) {
                             console.log(`[Turn Fallback] Remote player ${player.id} finished animation but did not pass turn. Advancing turn...`);
                             window.networkManager.passTurnToNext(player.id);
                         }
-                    }, 1500);
+                    }, 400);
                 }
             }
 

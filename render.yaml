@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ludo-x-bd-server
+    runtime: node
+    plan: free
+    region: singapore # 30-50ms ping for Bangladesh
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production

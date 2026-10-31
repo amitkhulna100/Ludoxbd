@@ -282,6 +282,15 @@ if (require.main === module) {
         console.log(`  Ludo X BD Authoritative Node.js Server`);
         console.log(`  Port: ${PORT}`);
         console.log(`  Health Check: http://localhost:${PORT}/health`);
+        if (process.env.RENDER_EXTERNAL_URL) {
+            console.log(`  Render Cloud URL: ${process.env.RENDER_EXTERNAL_URL}`);
+            // Auto self-ping to prevent sleep on Render free tier
+            const healthUrl = `${process.env.RENDER_EXTERNAL_URL}/health`;
+            const reqLib = healthUrl.startsWith('https') ? require('https') : http;
+            setInterval(() => {
+                reqLib.get(healthUrl, (res) => {}).on('error', () => {});
+            }, 10 * 60 * 1000); // 10 minutes keep-alive
+        }
         console.log(`=================================================`);
     });
 }

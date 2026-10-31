@@ -79,13 +79,13 @@ class NetworkManager {
         this.stageIntervalId = null;
         this._lastTickSec = 0;
 
-        // Default Arenas (15-Second Test/Play Timer)
+        // Default Arenas (20-Second Matchmaking Timer)
         this.boards = [
-            { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 500, winPrize: 1800, icon: '🏛️', waitingCount: 1, remainingSeconds: 15 },
-            { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 1000, winPrize: 3600, icon: '👑', waitingCount: 0, remainingSeconds: 15 },
-            { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 2500, winPrize: 9000, icon: '⚡', waitingCount: 0, remainingSeconds: 15 },
-            { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 5000, winPrize: 18000, icon: '🏖️', waitingCount: 0, remainingSeconds: 15 },
-            { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 10000, winPrize: 36000, icon: '🚄', waitingCount: 0, remainingSeconds: 15 }
+            { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 1000, winPrize: 3600, icon: '🏛️', waitingCount: 1, remainingSeconds: 20 },
+            { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 2000, winPrize: 7200, icon: '👑', waitingCount: 0, remainingSeconds: 20 },
+            { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 5000, winPrize: 18000, icon: '⚡', waitingCount: 0, remainingSeconds: 20 },
+            { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 10000, winPrize: 36000, icon: '🏖️', waitingCount: 0, remainingSeconds: 20 },
+            { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 25000, winPrize: 90000, icon: '🚄', waitingCount: 0, remainingSeconds: 20 }
         ];
 
         this.init();
@@ -443,15 +443,15 @@ class NetworkManager {
 
             case 'LOBBY_JOINED':
                 this.currentLobby = payload;
-                this.myColor = payload.myColor;
-                this.isHost = false; // Sole authoritative host is the cloud server!
+                this.myColor = payload.myColor || this.myColor;
+                this.isHost = (payload.boardId === 'private' && payload.players && payload.players[0] && payload.players[0].id === this.clientId);
                 this.openWaitingRoom(payload);
                 break;
 
             case 'PRIVATE_ROOM_CREATED':
                 this.currentLobby = payload;
-                this.myColor = payload.myColor;
-                this.isHost = false;
+                this.myColor = payload.myColor || 'red';
+                this.isHost = true;
                 const inputCodeEl = document.getElementById('inputRoomCode');
                 if (inputCodeEl) inputCodeEl.value = payload.roomCode;
                 this.openWaitingRoom(payload);
@@ -1483,7 +1483,7 @@ class NetworkManager {
         console.log('[Matchmaking] Request to join unified online match:', boardId);
         const ui = this.getUI();
         let currentCoins = ui?.userStats?.coins || 0;
-        if (currentCoins < 500) {
+        if (currentCoins < 1000) {
             if (ui?.userStats) {
                 ui.userStats.coins = 5050;
                 localStorage.setItem('lx_coins', '5050');
@@ -1505,15 +1505,15 @@ class NetworkManager {
         const boardDef = (this.boards && this.boards.find(b => b.id === targetBoardId)) || {
             id: 'dhaka',
             name: 'ঢাকা এরিনা (Dhaka Arena)',
-            fee: 500
+            fee: 1000
         };
 
-        // Open Waiting Room Modal immediately with 15s server countdown
+        // Open Waiting Room Modal immediately with 20s server countdown
         this.openWaitingRoom({
             boardId: boardDef.id,
             boardName: boardDef.name,
-            entryFee: boardDef.fee,
-            remainingSeconds: 15,
+            entryFee: boardDef.fee || 1000,
+            remainingSeconds: 20,
             players: []
         });
 
@@ -2704,18 +2704,27 @@ class NetworkManager {
             if (codeBox) codeBox.style.display = 'none';
         }
 
-        this.updateCountdownDisplay(data.remainingSeconds || 15);
+        if (data.isPrivate || data.boardId === 'private' || data.roomCode) {
+            this.updateCountdownDisplay(null);
+        } else {
+            this.updateCountdownDisplay(data.remainingSeconds !== undefined ? data.remainingSeconds : 20);
+        }
         this.updateWaitingRoomSlots(data.players || []);
     }
 
     updateCountdownDisplay(seconds) {
         const countdownEl = document.getElementById('onlineLobbyCountdown');
+        const noticeEl = document.getElementById('waitingRoomNoticeText');
+        if (seconds === null || seconds === undefined) {
+            if (countdownEl) countdownEl.style.display = 'none';
+            if (noticeEl) noticeEl.textContent = 'বন্ধুদের যুক্ত হওয়ার জন্য অপেক্ষা করা হচ্ছে... (হোস্ট শুরু করতে পারেন)';
+            return;
+        }
         if (countdownEl) {
             countdownEl.style.display = 'block';
             const s = Math.max(0, Math.floor(seconds));
             countdownEl.textContent = `00:${s < 10 ? '0' : ''}${s}`;
         }
-        const noticeEl = document.getElementById('waitingRoomNoticeText');
         if (noticeEl) {
             noticeEl.textContent = seconds > 0
                 ? '⏱️ ২০ সেকেন্ডে খেলা শুরু হবে (বাকি স্লটে বট যুক্ত হবে)'
@@ -2820,9 +2829,20 @@ class NetworkManager {
             this.peerLastSeen[p.color] = Date.now();
         });
 
-        // Determine my color
-        const me = this.matchPlayers.find(p => p.id === this.clientId);
-        this.myColor = me ? me.color : 'red';
+        // Authoritative Player Color Assignment: Direct from Server session
+        if (matchData.yourColor) {
+            this.myColor = matchData.yourColor;
+        } else if (this.currentLobby && this.currentLobby.myColor) {
+            this.myColor = this.currentLobby.myColor;
+        } else {
+            const me = this.matchPlayers.find(p => p.id === this.clientId);
+            if (me) {
+                this.myColor = me.color;
+            } else if (!this.myColor) {
+                this.myColor = 'red';
+            }
+        }
+        console.log(`[Player Identity] Authoritatively resolved myColor: ${this.myColor} (clientId: ${this.clientId})`);
 
         // Serverless architecture: No client acts as host on the board
         this.isHost = false;
@@ -2837,7 +2857,7 @@ class NetworkManager {
             if (p.isBot) {
                 customNames[p.color] = p.name;
                 playerTypes[p.color] = 'ai';
-            } else if (p.id === this.clientId) {
+            } else if (p.color === this.myColor || p.id === this.clientId) {
                 customNames[p.color] = `${p.name} (You) 🇧🇩`;
                 playerTypes[p.color] = 'human';
             } else {
@@ -3101,9 +3121,16 @@ class NetworkManager {
             ui.executeMove(data.tokenId, true, data.color, data);
         } else {
             // Reconcile board snapshot for local mover as well
+            if (data.stateVersion) {
+                if (this._lastStateVersion && data.stateVersion < this._lastStateVersion) {
+                    console.log(`[Snapshot] Stale state version ${data.stateVersion} < ${this._lastStateVersion}, skipping reconciliation.`);
+                    return;
+                }
+                this._lastStateVersion = data.stateVersion;
+            }
             if (Array.isArray(data.boardSnapshot) && ui.engine && ui.engine.players) {
                 data.boardSnapshot.forEach(savedP => {
-                    const liveP = ui.engine.players.find(p => p.id === savedP.id);
+                    const liveP = ui.engine.players.find(p => p.id === savedP.color || p.id === savedP.id);
                     if (liveP && Array.isArray(savedP.tokens)) {
                         if (savedP.finishedTokens !== undefined) liveP.finishedTokens = savedP.finishedTokens;
                         savedP.tokens.forEach(savedT => {
@@ -3112,6 +3139,7 @@ class NetworkManager {
                                 liveT.state = savedT.state;
                                 liveT.stepCount = (savedT.stepCount !== undefined ? savedT.stepCount : (savedT.step || 0));
                                 liveT.trackIndex = savedT.trackIndex;
+                                if (savedT.hasShield !== undefined) liveT.hasShield = !!savedT.hasShield;
                             }
                         });
                     }

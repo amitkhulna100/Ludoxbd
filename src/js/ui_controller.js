@@ -3143,8 +3143,15 @@ class LudoUIController {
 
         // Authoritative Full Board State Self-Healing Reconciliation
         if (authoritativeData && Array.isArray(authoritativeData.boardSnapshot) && this.engine && this.engine.players) {
+            if (authoritativeData.stateVersion) {
+                if (this._lastStateVersion && authoritativeData.stateVersion < this._lastStateVersion) {
+                    console.log(`[Snapshot] Stale state version ${authoritativeData.stateVersion} < ${this._lastStateVersion}, skipping reconciliation.`);
+                    return;
+                }
+                this._lastStateVersion = authoritativeData.stateVersion;
+            }
             authoritativeData.boardSnapshot.forEach(savedP => {
-                const liveP = this.engine.players.find(p => p.id === savedP.id);
+                const liveP = this.engine.players.find(p => p.id === savedP.color || p.id === savedP.id);
                 if (liveP && Array.isArray(savedP.tokens)) {
                     if (savedP.finishedTokens !== undefined) liveP.finishedTokens = savedP.finishedTokens;
                     savedP.tokens.forEach(savedT => {
@@ -3795,18 +3802,10 @@ class LudoUIController {
     }
 
     getBoardRotationAngle() {
-        const color = this.getLocalPlayerColor();
-        switch (color) {
-            case 'green':
-                return 3 * Math.PI / 2; // 270 deg clockwise (puts Green yard at bottom-left)
-            case 'yellow':
-                return Math.PI;          // 180 deg clockwise (puts Yellow yard at bottom-left)
-            case 'blue':
-                return Math.PI / 2;      // 90 deg clockwise (puts Blue yard at bottom-left)
-            case 'red':
-            default:
-                return 0;                // 0 deg (standard Red yard at bottom-left)
-        }
+        // Standard Ludo King Fixed Canonical Orientation:
+        // Red: bottom-left, Green: top-left, Yellow: top-right, Blue: bottom-right
+        // Consistent across all devices with zero disorientation
+        return 0;
     }
 
     applyPodPosition(pod, pos) {
@@ -3838,18 +3837,18 @@ class LudoUIController {
     }
 
     updatePodPositions() {
-        const localColor = this.getLocalPlayerColor();
-        const mapping = {
-            red: { red: 'bottom-left', blue: 'bottom-right', yellow: 'top-right', green: 'top-left' },
-            green: { green: 'bottom-left', red: 'bottom-right', blue: 'top-right', yellow: 'top-left' },
-            yellow: { yellow: 'bottom-left', green: 'bottom-right', red: 'top-right', blue: 'top-left' },
-            blue: { blue: 'bottom-left', yellow: 'bottom-right', green: 'top-right', red: 'top-left' }
-        }[localColor] || { red: 'bottom-left', blue: 'bottom-right', yellow: 'top-right', green: 'top-left' };
+        // Fixed corner positions matching canonical board geometry
+        const canonical = {
+            red: 'bottom-left',
+            green: 'top-left',
+            yellow: 'top-right',
+            blue: 'bottom-right'
+        };
 
         ['red', 'green', 'yellow', 'blue'].forEach(color => {
             const pod = document.getElementById(`corner_${color}`);
-            if (pod && mapping[color]) {
-                this.applyPodPosition(pod, mapping[color]);
+            if (pod && canonical[color]) {
+                this.applyPodPosition(pod, canonical[color]);
             }
         });
     }

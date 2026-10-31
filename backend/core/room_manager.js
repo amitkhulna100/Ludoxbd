@@ -6,11 +6,11 @@ const CryptoRNG = require('./crypto_rng');
 const SupabaseService = require('./supabase_service');
 
 const BOARD_DEFINITIONS = [
-    { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 500, winPrize: 1800, icon: '🏛️' },
-    { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 1000, winPrize: 3600, icon: '👑' },
-    { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 2500, winPrize: 9000, icon: '⚡' },
-    { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 5000, winPrize: 18000, icon: '🏖️' },
-    { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 10000, winPrize: 36000, icon: '🚄' }
+    { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 1000, winPrize: 3600, icon: '🏛️' },
+    { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 2000, winPrize: 7200, icon: '👑' },
+    { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 5000, winPrize: 18000, icon: '⚡' },
+    { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 10000, winPrize: 36000, icon: '🏖️' },
+    { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 25000, winPrize: 90000, icon: '🚄' }
 ];
 
 const BOT_NAMES = [
@@ -23,28 +23,33 @@ const BOT_NAMES = [
 const COLORS = ['red', 'green', 'yellow', 'blue'];
 
 class WaitingLobby {
-    constructor(boardId, roomManager, maxPlayers = 4) {
+    constructor(boardId, roomManager, maxPlayers = 4, isPrivate = false, roomCode = null) {
         this.boardId = boardId;
         this.roomManager = roomManager;
         this.maxPlayers = maxPlayers;
         this.players = []; // array of ClientSession
-        this.remainingSeconds = 15; // 15-second countdown for matchmaking
-        this.isPrivate = false;
-        this.roomCode = null;
+        this.remainingSeconds = 20; // 20-second countdown for public matchmaking
+        this.isPrivate = isPrivate;
+        this.roomCode = roomCode;
         this.started = false;
+        this.timer = null;
 
-        this.timer = setInterval(() => {
-            this.remainingSeconds--;
-            this.broadcast('LOBBY_TICK', {
-                boardId: this.boardId,
-                remainingSeconds: this.remainingSeconds,
-                players: this.getPlayersSummary()
-            });
+        // Only start countdown timer for public matchmaking!
+        // Private rooms wait for host or until 4 friends join.
+        if (!this.isPrivate) {
+            this.timer = setInterval(() => {
+                this.remainingSeconds--;
+                this.broadcast('LOBBY_TICK', {
+                    boardId: this.boardId,
+                    remainingSeconds: this.remainingSeconds,
+                    players: this.getPlayersSummary()
+                });
 
-            if (this.remainingSeconds <= 0) {
-                this.startMatch();
-            }
-        }, 1000);
+                if (this.remainingSeconds <= 0) {
+                    this.startMatch();
+                }
+            }, 1000);
+        }
     }
 
     addPlayer(client) {
@@ -84,7 +89,10 @@ class WaitingLobby {
     startMatch() {
         if (this.started) return;
         this.started = true;
-        clearInterval(this.timer);
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
 
         const code = this.roomCode || CryptoRNG.generateRoomCode();
         this.roomManager.removeWaitingLobby(this.boardId, this.roomCode);
@@ -130,11 +138,11 @@ class WaitingLobby {
 
         const boardDef = BOARD_DEFINITIONS.find(b => b.id === this.boardId);
         const boardName = boardDef ? boardDef.name : (this.isPrivate ? `রুম #${code}` : 'অনলাইন এরিনা');
-        const entryFee = boardDef ? boardDef.fee : 0;
+        const entryFee = boardDef ? boardDef.fee : 1000;
 
         console.log(`[RoomManager] Match started: Room #${code} (${this.boardId}) with ${this.players.length} humans and ${allPlayers.length - this.players.length} bots.`);
 
-        gameRoom.broadcast('MATCH_STARTED', {
+        const commonPayload = {
             roomCode: code,
             boardId: this.boardId,
             boardName: boardName,
@@ -148,7 +156,17 @@ class WaitingLobby {
                 autoPlay: p.autoPlay
             })),
             startingTurn: 'red'
-        });
+        };
+
+        // Send customized MATCH_STARTED with explicit authoritative yourColor to each player session
+        for (const p of this.players) {
+            if (p && !p.isClosed) {
+                p.send('MATCH_STARTED', {
+                    ...commonPayload,
+                    yourColor: p.color
+                });
+            }
+        }
 
         gameRoom.scheduleTurnWatchdog();
     }
@@ -163,6 +181,7 @@ class GameRoom {
         this.turnWatchdogTimer = null;
         this.currentStage = 'ROLL'; // 'ROLL' or 'MOVE'
         this.stageDeadlineMs = 0;
+        this.stateVersion = 0;
 
         this.engine = new AuthoritativeEngine({
             roomCode: code,
@@ -373,6 +392,7 @@ class GameRoom {
             gameOver: moveResult.gameOver,
             winners: moveResult.winners,
             nextTurn: moveResult.nextTurn,
+            stateVersion: ++this.stateVersion,
             boardSnapshot: this.engine.getStateSnapshot().players
         });
 
@@ -448,6 +468,7 @@ class GameRoom {
                 winners: moveResult.winners,
                 nextTurn: moveResult.nextTurn,
                 isAuto: true,
+                stateVersion: ++this.stateVersion,
                 boardSnapshot: this.engine.getStateSnapshot().players
             });
 
@@ -577,7 +598,7 @@ class RoomManager {
                 winPrize: b.winPrize,
                 icon: b.icon,
                 waitingCount: lob ? lob.players.length : 0,
-                remainingSeconds: lob ? lob.remainingSeconds : 15
+                remainingSeconds: lob ? lob.remainingSeconds : 20
             };
         });
     }
@@ -587,7 +608,7 @@ class RoomManager {
 
         let lobby = this.publicLobbies.get(boardId);
         if (!lobby || lobby.started) {
-            lobby = new WaitingLobby(boardId, this, 4);
+            lobby = new WaitingLobby(boardId, this, 4, false, null);
             this.publicLobbies.set(boardId, lobby);
         }
 
@@ -621,9 +642,7 @@ class RoomManager {
         this.leaveAnyLobby(client);
         const code = CryptoRNG.generateRoomCode();
 
-        const lobby = new WaitingLobby('private', this, maxPlayers);
-        lobby.isPrivate = true;
-        lobby.roomCode = code;
+        const lobby = new WaitingLobby('private', this, maxPlayers, true, code);
         this.privateLobbies.set(code, lobby);
 
         lobby.addPlayer(client);
@@ -634,7 +653,7 @@ class RoomManager {
             roomCode: code,
             myColor: client.color,
             maxPlayers: maxPlayers,
-            remainingSeconds: lobby.remainingSeconds,
+            remainingSeconds: null,
             players: lobby.getPlayersSummary()
         });
 
@@ -643,7 +662,7 @@ class RoomManager {
             boardName: `বন্ধুদের সাথে প্রাইভেট রুম #${code}`,
             roomCode: code,
             myColor: client.color,
-            remainingSeconds: lobby.remainingSeconds,
+            remainingSeconds: null,
             players: lobby.getPlayersSummary()
         });
     }
@@ -686,14 +705,14 @@ class RoomManager {
             boardName: `বন্ধুদের সাথে প্রাইভেট রুম #${code}`,
             roomCode: code,
             myColor: client.color,
-            remainingSeconds: lobby.remainingSeconds,
+            remainingSeconds: null,
             players: lobby.getPlayersSummary()
         });
 
         lobby.broadcast('PLAYER_JOINED_LOBBY', {
             joinedPlayer: { name: client.name, color: client.color },
             players: lobby.getPlayersSummary(),
-            remainingSeconds: lobby.remainingSeconds
+            remainingSeconds: null
         });
 
         if (lobby.players.length >= lobby.maxPlayers) {

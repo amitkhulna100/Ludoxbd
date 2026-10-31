@@ -620,10 +620,13 @@ class LudoUIController {
                     if (window.networkManager && window.networkManager.isOnlineMatch) {
                         if (color !== window.networkManager.myColor) return;
                         const isBot = window.networkManager.botColors && window.networkManager.botColors.includes(color);
-                        if (isBot) return;
+                        if (isBot) {
+                            // User tapped their dice while in Auto Play: resume manual control!
+                            window.networkManager.toggleAutoPlay();
+                        }
                     }
                     const curPlayer = this.engine ? this.engine.getCurrentPlayer() : null;
-                    if (curPlayer && curPlayer.id === color && curPlayer.type === 'human' && this.engine.state === 'WAITING_ROLL') {
+                    if (curPlayer && curPlayer.id === color && (curPlayer.type === 'human' || (window.networkManager && window.networkManager.isOnlineMatch)) && this.engine.state === 'WAITING_ROLL') {
                         this.executeRoll();
                     }
                 });

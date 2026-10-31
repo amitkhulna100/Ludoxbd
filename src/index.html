@@ -1418,18 +1418,22 @@
                 </div>
             </div>
 
-            <!-- Category: অনলাইন মাল্টিপ্লেয়ার ক্লাউড -->
+            <!-- Category: অনলাইন মাল্টিপ্লেয়ার অথরিটেটিভ ক্লাউড সার্ভার -->
             <div class="settings-group-title" style="margin-top: 10px;">
-                <span>🌐 অনলাইন মাল্টিপ্লেয়ার (Cloud Live Server)</span>
+                <span>🌐 অনলাইন মাল্টিপ্লেয়ার (Authoritative Cloud Server)</span>
             </div>
 
             <div class="setting-toggle-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
                 <div class="online-status-badge" style="width: 100%; box-sizing: border-box; font-size: 0.85rem;">
-                    <span class="status-pulse-dot" style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; display: inline-block; margin-right: 6px;"></span> Server Connected
+                    <span class="status-pulse-dot" style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; display: inline-block; margin-right: 6px;"></span> <span id="onlineServerStatusText">Authoritative Cloud Server Connected</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.8rem; color: #94a3b8; padding: 2px 4px;">
-                    <span>সার্ভার: Cloud Live Gateway</span>
+                    <span id="onlineServerHostDisplay">সার্ভার: Authoritative Cloud</span>
                     <span>পিং: <strong id="onlineLivePing" style="color: #22c55e;">--ms</strong></span>
+                </div>
+                <div style="display: flex; gap: 6px; width: 100%; margin-top: 4px;">
+                    <input type="text" id="inputGameServerUrl" placeholder="wss://ludo-x-bd-server.onrender.com" class="input-custom" style="flex: 1; font-size: 0.75rem; padding: 6px 8px; background: rgba(0,0,0,0.35); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;" />
+                    <button id="btnSaveGameServerUrl" class="btn-primary" style="padding: 6px 10px; font-size: 0.75rem; white-space: nowrap;">সেভ করুন</button>
                 </div>
                 <button id="btnReconnectSupabaseRealtime" class="btn-secondary" style="width: 100%; font-size: 0.8rem; margin-top: 2px;">🔄 সার্ভার সংযোগ রিফ্রেশ করুন</button>
             </div>

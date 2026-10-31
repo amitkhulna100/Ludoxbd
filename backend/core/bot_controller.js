@@ -24,44 +24,50 @@ class BotController {
 
             // 1. Goal move: entering home triangle
             if (move.targetStepCount === 56) {
-                score += 1500;
+                score += 2000;
             }
 
             // 2. Entering safe home stretch
             if (token.stepCount < 51 && move.targetStepCount >= 51) {
-                score += 500;
+                score += 800;
             }
 
-            // 3. Cutting opponent check
+            // 3. Cutting opponent check (with Bug Fix 2 Joint Pair check)
             if (move.targetStepCount < 51 && move.type !== 'EXIT_YARD') {
                 const targetTrackIdx = (player.startIndex + move.targetStepCount) % 52;
                 if (!SAFE_INDICES.includes(targetTrackIdx)) {
+                    const attackerTokensOnSquare = player.tokens.filter(t => t.id !== token.id && t.state === 'TRACK' && t.trackIndex === targetTrackIdx);
+                    const attackerCount = attackerTokensOnSquare.length + 1;
+
                     engine.players.forEach(otherPlayer => {
                         if (otherPlayer.color === player.color) return;
-                        otherPlayer.tokens.forEach(otherToken => {
-                            if (otherToken.state === 'TRACK' && otherToken.trackIndex === targetTrackIdx) {
-                                score += 1000; // High priority: Capture opponent!
+                        const oppTokens = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === targetTrackIdx);
+                        if (oppTokens.length > 0) {
+                            if (oppTokens.length >= 2 && attackerCount < 2) {
+                                // Cannot cut joint pair - do not prioritize
+                            } else {
+                                score += 1500; // High priority: Capture opponent!
                             }
-                        });
+                        }
                     });
                 }
             }
 
             // 4. Leaving yard
             if (move.type === 'EXIT_YARD') {
-                score += 350;
+                score += 450;
             }
 
             // 5. Landing on a safe star
             if (move.targetStepCount < 51 && move.type !== 'EXIT_YARD') {
                 const targetTrackIdx = (player.startIndex + move.targetStepCount) % 52;
                 if (SAFE_INDICES.includes(targetTrackIdx)) {
-                    score += 400; // Safe spot
+                    score += 500; // Safe spot
                 }
             }
 
             // 6. Natural forward advancement
-            score += (move.targetStepCount - token.stepCount) * 5;
+            score += (move.targetStepCount - token.stepCount) * 10;
 
             if (score > bestScore) {
                 bestScore = score;

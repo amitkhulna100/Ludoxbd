@@ -1,11 +1,36 @@
 /**
- * Ludo X BD - Supabase Realtime Cloud Multiplayer Network Manager
- * 100% Cloud-Native (Zero Localhost / Port 3000 Dependency)
+ * Ludo X BD - Authoritative Real-Time Cloud Game Server Network Manager
+ * 100% Server-Authoritative Architecture (Zero Peer-to-Peer Desync)
  * 
- * Powered by Supabase Realtime Channels (WebSocket RFC 6455 / Phoenix Protocol)
- * Project: oispsbtnmehtxcjwjlcr.supabase.co
- * Key: sb_publishable_VJA2iDkdeTipgBAtwA1VYg_oDXzkKah
+ * Single Source of Truth: Node.js WebSocket Game Server
+ * Persistent DB & Economy: Supabase Database REST API
  */
+
+const AUTHORITATIVE_SERVER_CONFIG = {
+    // 1. Primary Render/Cloudflare Cloud WebSocket Gateway
+    cloudWsUrl: 'wss://ludo-x-bd-server.onrender.com',
+
+    // 2. Custom Tunnel / Server URL saved by user in Settings or Dev
+    get customUrl() {
+        return localStorage.getItem('lx_game_server_url') || '';
+    },
+
+    // 3. Localhost / Local PC Wi-Fi URL (e.g. 192.168.0.102:3000)
+    localWsUrl: 'ws://127.0.0.1:3000',
+
+    // 4. Supabase Realtime Fallback Gateway
+    supabaseWsUrl: 'wss://oispsbtnmehtxcjwjlcr.supabase.co/realtime/v1/websocket?apikey=sb_publishable_VJA2iDkdeTipgBAtwA1VYg_oDXzkKah&vsn=1.0.0',
+
+    getActiveWsUrl() {
+        if (this.customUrl && this.customUrl.trim().length > 0) {
+            return this.customUrl.trim();
+        }
+        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            return this.localWsUrl;
+        }
+        return this.cloudWsUrl;
+    }
+};
 
 const SUPABASE_REALTIME_CONFIG = {
     host: 'oispsbtnmehtxcjwjlcr.supabase.co',
@@ -19,6 +44,8 @@ class NetworkManager {
     constructor() {
         this.ws = null;
         this.isConnected = false;
+        this.isAuthoritativeMode = false;
+        this.serverWsUrl = AUTHORITATIVE_SERVER_CONFIG.getActiveWsUrl();
         this.clientId = this.getOrCreateClientId();
         this.currentTopic = null;
         this.currentLobby = null;
@@ -241,33 +268,104 @@ class NetworkManager {
         this.bindInitialBoardListeners();
         this.bindWaitingRoomUI();
         this.bindRejoinUI();
+        this.initServerSettingsUI();
         this.connect();
         this.updateActiveMatchUI();
     }
 
+    initServerSettingsUI() {
+        const inputUrl = document.getElementById('inputGameServerUrl');
+        const btnSave = document.getElementById('btnSaveGameServerUrl');
+        const hostDisplay = document.getElementById('onlineServerHostDisplay');
+
+        if (inputUrl) {
+            inputUrl.value = localStorage.getItem('lx_game_server_url') || '';
+            inputUrl.placeholder = AUTHORITATIVE_SERVER_CONFIG.cloudWsUrl;
+        }
+
+        if (hostDisplay) {
+            const current = AUTHORITATIVE_SERVER_CONFIG.getActiveWsUrl();
+            hostDisplay.textContent = `সার্ভার: ${current.replace(/^wss?:\/\//, '').split('/')[0]}`;
+        }
+
+        if (btnSave && inputUrl) {
+            btnSave.addEventListener('click', () => {
+                const newUrl = inputUrl.value.trim();
+                if (newUrl) {
+                    localStorage.setItem('lx_game_server_url', newUrl);
+                    this.showToast(`✅ সার্ভার URL সংরক্ষিত হয়েছে: ${newUrl}`);
+                } else {
+                    localStorage.removeItem('lx_game_server_url');
+                    this.showToast('🔄 ডিফল্ট ক্লাউড সার্ভারে রিসেট করা হয়েছে');
+                }
+                this.serverWsUrl = AUTHORITATIVE_SERVER_CONFIG.getActiveWsUrl();
+                if (hostDisplay) {
+                    hostDisplay.textContent = `সার্ভার: ${this.serverWsUrl.replace(/^wss?:\/\//, '').split('/')[0]}`;
+                }
+                if (this.ws) {
+                    this.ws.close();
+                }
+                setTimeout(() => this.connect(), 400);
+            });
+        }
+    }
+
+    isAuthoritativeServerConnected() {
+        return this.isConnected && this.isAuthoritativeMode && this.ws && this.ws.readyState === WebSocket.OPEN;
+    }
+
+    sendToServer(type, payload = {}) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+        try {
+            this.ws.send(JSON.stringify({ type, payload }));
+            return true;
+        } catch (e) {
+            console.error('[Authoritative Server] Send error:', e);
+            return false;
+        }
+    }
+
     /**
-     * Connect directly to Supabase Realtime WebSocket
+     * Connect to Authoritative Cloud Game Server (with graceful Supabase Realtime fallback)
      */
     connect() {
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
             return;
         }
 
+        const url = this.serverWsUrl || AUTHORITATIVE_SERVER_CONFIG.getActiveWsUrl();
+        console.log(`[Authoritative Server] Connecting to ${url}...`);
+
         try {
-            const url = SUPABASE_REALTIME_CONFIG.wsUrl;
-            console.log(`[Supabase Realtime] Connecting to ${SUPABASE_REALTIME_CONFIG.host}...`);
             this.ws = new WebSocket(url);
 
             this.ws.onopen = () => {
-                console.log('[Supabase Realtime] Connected to Cloud Gateway! 🟢');
+                console.log(`[Authoritative Server] Connected successfully to ${url}! 🟢`);
                 this.isConnected = true;
-                this.updateStatusBadge(true);
+                this.isAuthoritativeMode = true;
+                this.updateStatusBadge(true, '🟢 অথরিটেটিভ সার্ভার সংযুক্ত');
 
-                // Start Phoenix Heartbeat (every 25 seconds)
+                const statusEl = document.getElementById('onlineServerStatusText');
+                if (statusEl) statusEl.textContent = 'Authoritative Cloud Server Connected';
+
+                // Send profile greeting & fetch boards
+                const ui = this.getUI();
+                const myName = ui?.userStats?.name || localStorage.getItem('lx_player_name') || 'খেলোয়াড়';
+                const myAvatar = ui?.userStats?.avatar || 'king';
+
+                this.sendToServer('SET_PROFILE', { name: myName, avatar: myAvatar });
+                this.sendToServer('GET_BOARDS');
+
+                // Ping every 15s to measure live latency
                 if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
                 this.heartbeatTimer = setInterval(() => {
-                    this.sendHeartbeat();
-                }, 25000);
+                    this.lastPingTime = Date.now();
+                    if (this.isAuthoritativeMode) {
+                        this.sendToServer('PING');
+                    } else {
+                        this.sendHeartbeat();
+                    }
+                }, 15000);
 
                 // Render default boards
                 this.renderBoardsList(this.boards);
@@ -276,29 +374,185 @@ class NetworkManager {
             this.ws.onmessage = (event) => {
                 try {
                     const packet = JSON.parse(event.data);
-                    this.handlePhoenixMessage(packet);
+                    // Authoritative Server message
+                    if (packet.type) {
+                        this.isAuthoritativeMode = true;
+                        this.handleAuthoritativeServerMessage(packet.type, packet.payload);
+                        return;
+                    }
+                    // Phoenix / Supabase Realtime channel fallback
+                    if (packet.event) {
+                        this.handlePhoenixMessage(packet);
+                    }
                 } catch (e) {
-                    console.warn('[Supabase Realtime] Packet parse error:', e);
+                    console.warn('[Authoritative Server] Packet parse error:', e);
                 }
             };
 
             this.ws.onclose = () => {
-                console.log('[Supabase Realtime] Disconnected 🔴. Reconnecting in 3s...');
+                console.log('[Authoritative Server] Disconnected 🔴. Reconnecting in 3s...');
                 this.isConnected = false;
+                this.isAuthoritativeMode = false;
                 if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-                this.updateStatusBadge(false);
+                this.updateStatusBadge(false, '🔴 সংযোগ বিচ্ছিন্ন');
+
+                const statusEl = document.getElementById('onlineServerStatusText');
+                if (statusEl) statusEl.textContent = 'Disconnected (Reconnecting...)';
+
                 setTimeout(() => this.connect(), 3000);
             };
 
             this.ws.onerror = (err) => {
-                console.warn('[Supabase Realtime] Socket error:', err);
+                console.warn('[Authoritative Server] Socket error:', err);
                 this.isConnected = false;
-                this.updateStatusBadge(false);
+                this.updateStatusBadge(false, '⚠️ সার্ভার ত্রুটি');
             };
         } catch (e) {
-            console.error('[Supabase Realtime] Connect exception:', e);
+            console.error('[Authoritative Server] Connect exception:', e);
             this.isConnected = false;
-            this.updateStatusBadge(false);
+            this.updateStatusBadge(false, '🔴 সংযোগ ব্যর্থ');
+        }
+    }
+
+    handleAuthoritativeServerMessage(type, payload = {}) {
+        const ui = this.getUI();
+
+        switch (type) {
+            case 'CONNECTED':
+                this.clientId = payload.clientId;
+                console.log(`[Authoritative Server] Registered Client ID: ${this.clientId}`);
+                break;
+
+            case 'BOARD_LIST':
+                if (Array.isArray(payload.boards) && payload.boards.length > 0) {
+                    this.boards = payload.boards;
+                    this.renderBoardsList(this.boards);
+                }
+                break;
+
+            case 'LOBBY_JOINED':
+                this.currentLobby = payload;
+                this.myColor = payload.myColor;
+                this.isHost = false; // Sole authoritative host is the cloud server!
+                this.openWaitingRoom(payload);
+                break;
+
+            case 'PRIVATE_ROOM_CREATED':
+                this.currentLobby = payload;
+                this.myColor = payload.myColor;
+                this.isHost = false;
+                const inputCodeEl = document.getElementById('inputRoomCode');
+                if (inputCodeEl) inputCodeEl.value = payload.roomCode;
+                this.openWaitingRoom(payload);
+                this.showToast(`🎉 প্রাইভেট রুম #${payload.roomCode} তৈরি হয়েছে! বন্ধুদের বলুন জয়েন করতে।`);
+                break;
+
+            case 'PLAYER_JOINED_LOBBY':
+                if (payload.players) {
+                    if (this.currentLobby) this.currentLobby.players = payload.players;
+                    this.updateWaitingRoomSlots(payload.players);
+                    window.soundFX?.playClick();
+                }
+                break;
+
+            case 'PLAYER_LEFT_LOBBY':
+                if (payload.players) {
+                    if (this.currentLobby) this.currentLobby.players = payload.players;
+                    this.updateWaitingRoomSlots(payload.players);
+                }
+                break;
+
+            case 'LOBBY_TICK':
+                if (this.currentLobby) {
+                    this.currentLobby.remainingSeconds = payload.remainingSeconds;
+                }
+                this.updateCountdownDisplay(payload.remainingSeconds);
+                break;
+
+            case 'MATCH_STARTED':
+                if (this._lobbyDiscoveryTimer) {
+                    clearTimeout(this._lobbyDiscoveryTimer);
+                    this._lobbyDiscoveryTimer = null;
+                }
+                if (this.localTimer) { clearInterval(this.localTimer); this.localTimer = null; }
+                this.isOnlineMatch = true;
+                this.isHost = false; // Sole authoritative host is the cloud server!
+                this.currentRoom = payload;
+                this.startOnlineMatch(payload);
+                break;
+
+            case 'DICE_ROLLED':
+                this.clearTurnTimers();
+                this.handleRemoteDiceRolled(payload);
+                break;
+
+            case 'TOKEN_MOVED':
+                this.clearTurnTimers();
+                this.handleRemoteTokenMoved(payload);
+                break;
+
+            case 'TURN_CHANGED':
+                this.handleTurnChanged(payload.nextTurn);
+                break;
+
+            case 'TURN_STAGE_SYNC':
+                this.handleTurnStageSync(payload);
+                break;
+
+            case 'TURN_TIMEOUT':
+                this.showToast(`⏰ সময় শেষ! ${payload.timedOutColor.toUpperCase()}-এর চাল স্বয়ংক্রিয়ভাবে পাস হয়েছে।`);
+                break;
+
+            case 'PLAYER_STATUS_CHANGED':
+                if (payload.color === this.myColor) {
+                    this.updateAutoPlayUI(payload.autoPlay);
+                    if (payload.autoPlay) {
+                        this.showToast('🤖 ১৫ সেকেন্ডে চাল না দেওয়ায় বট দায়িত্ব নিয়েছে। Auto Play OFF করতে ট্যাপ করুন।');
+                    } else {
+                        this.showToast('🎮 আপনি পুনরায় ম্যানুয়াল কন্ট্রোল ফিরে পেয়েছেন!');
+                    }
+                }
+                if (payload.autoPlay) {
+                    if (!this.botColors.includes(payload.color)) this.botColors.push(payload.color);
+                } else {
+                    this.botColors = this.botColors.filter(c => c !== payload.color);
+                }
+                if (ui && ui.engine && ui.engine.players) {
+                    const p = ui.engine.players.find(p => p.id === payload.color);
+                    if (p) p.isAI = payload.autoPlay || payload.isBot;
+                    if (typeof ui.updatePlayerPods === 'function') ui.updatePlayerPods();
+                }
+                break;
+
+            case 'MATCH_REJOINED':
+                console.log(`[Authoritative Server] Successfully rejoined match #${payload.roomCode}!`);
+                this.isOnlineMatch = true;
+                this.isHost = false;
+                this.myColor = payload.myColor;
+                this.closeWaitingRoom();
+                this.applySynchronizedState(payload.snapshot);
+                this.showToast('🎉 ম্যাচে সফলভাবে পুনরায় সংযুক্ত হয়েছেন!');
+                break;
+
+            case 'PLAYER_REJOINED_MATCH':
+                this.showToast(`🎉 ${payload.name || payload.color.toUpperCase()} পুনরায় ম্যাচে যোগ দিয়েছেন!`);
+                break;
+
+            case 'EMOTE_RECEIVED':
+                this.showFloatingEmote(payload.color, payload.emoji);
+                break;
+
+            case 'NOTICE':
+                this.showToast(payload.message || 'বিজ্ঞপ্তি');
+                break;
+
+            case 'PONG':
+                if (this.lastPingTime) {
+                    const ping = Date.now() - this.lastPingTime;
+                    const pingEl = document.getElementById('onlineLivePing');
+                    if (pingEl) pingEl.textContent = `${ping}ms`;
+                }
+                break;
         }
     }
 
@@ -578,6 +832,12 @@ class NetworkManager {
         }
 
         const isCurrentlyBot = (this.botColors && this.botColors.includes(this.myColor));
+
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('SET_AUTO_PLAY', { enabled: !isCurrentlyBot });
+            return;
+        }
+
         if (isCurrentlyBot) {
             // Player wants to turn Auto Play OFF and take back control!
             console.log(`[Auto Play] Resuming manual control for ${this.myColor}`);
@@ -1610,6 +1870,11 @@ class NetworkManager {
 
 
     createPrivateRoom(playerCount = 4) {
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('CREATE_PRIVATE_ROOM', { playerCount: playerCount || 4 });
+            return;
+        }
+
         const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
         const inputCodeEl = document.getElementById('inputRoomCode');
         if (inputCodeEl) inputCodeEl.value = roomCode;
@@ -1644,9 +1909,14 @@ class NetworkManager {
     }
 
     joinPrivateRoom(roomCode) {
-        const code = roomCode.trim();
+        const code = (roomCode || '').trim();
         if (!code || code.length < 4) {
             alert('সঠিক রুম কোড লিখুন!');
+            return;
+        }
+
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('JOIN_PRIVATE_ROOM', { roomCode: code });
             return;
         }
 
@@ -1680,10 +1950,18 @@ class NetworkManager {
 
     // Backward-compatibility aliases for legacy calls
     joinBoard(boardId, entryFee = 1000) {
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('JOIN_BOARD', { boardId: boardId || 'dhaka' });
+            return;
+        }
         this.joinUnifiedOnlineMatch();
     }
 
     requestQuickMatch(playerCount = 4) {
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('JOIN_BOARD', { boardId: 'dhaka' });
+            return;
+        }
         this.joinUnifiedOnlineMatch();
     }
 
@@ -1978,11 +2256,16 @@ class NetworkManager {
             return;
         }
 
-        console.log('[Supabase Realtime] Rejoining active match:', session.roomCode);
+        console.log('[Match Rejoin] Rejoining active match:', session.roomCode);
         window.soundFX?.playClick();
 
         // 1. Ensure WebSocket connection
         this.connect();
+
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('REJOIN_ROOM', { roomCode: session.roomCode, color: session.myColor || this.myColor });
+            return;
+        }
 
         // 2. Restore session parameters
         this.isOnlineMatch = true;
@@ -2632,6 +2915,13 @@ class NetworkManager {
         // Clear Stage A Dice Roll Timer immediately
         this.clearTurnTimers();
 
+        // In Authoritative Server Mode: Server determines roll and broadcasts
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('ROLL_DICE', { color: this.myColor });
+            setTimeout(() => { this.isRolling = false; }, 600);
+            return true;
+        }
+
         const ui = this.getUI();
         if (!ui || !ui.engine) return false;
 
@@ -2710,11 +3000,18 @@ class NetworkManager {
     moveToken(tokenId, color = null) {
         if (!this.isOnlineMatch) return false;
         const moveColor = color || this.myColor;
-        const ui = this.getUI();
-        const diceVal = ui?.engine?.diceValue || 0;
 
         // Clear Stage B Token Move Timer immediately
         this.clearTurnTimers();
+
+        // In Authoritative Server Mode: Server determines move and broadcasts
+        if (this.isAuthoritativeServerConnected()) {
+            this.sendToServer('MOVE_TOKEN', { color: moveColor, tokenId: tokenId });
+            return true;
+        }
+
+        const ui = this.getUI();
+        const diceVal = ui?.engine?.diceValue || 0;
 
         // Calculate authoritative outcome from current engine state
         let outcome = null;

@@ -1,0 +1,15 @@
+{
+  "name": "ludo-x-bd",
+  "version": "1.0.0",
+  "description": "Ludo X BD - Authoritative Real-Time Online Multiplayer Game Server",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node scratch/test_authoritative_server_multiplayer.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "Ludo X BD Team",
+  "license": "MIT"
+}

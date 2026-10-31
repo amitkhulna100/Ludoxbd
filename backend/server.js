@@ -21,15 +21,24 @@ class ClientSession {
         this.room = null;
         this.isClosed = false;
 
-        this.socket.on('close', () => {
+        const cleanupSession = (reason) => {
+            if (this.isClosed) return;
             this.isClosed = true;
             roomManager.handleDisconnect(this);
             clients.delete(this.id);
-            console.log(`[Disconnect] Client ${this.id} disconnected. (Active: ${clients.size})`);
+            console.log(`[Disconnect] Client ${this.id} disconnected (${reason}). (Active: ${clients.size})`);
+        };
+
+        this.socket.on('close', () => {
+            cleanupSession('close');
+        });
+
+        this.socket.on('end', () => {
+            cleanupSession('end');
         });
 
         this.socket.on('error', (err) => {
-            console.warn(`[Socket Error] ${this.id}:`, err.message);
+            cleanupSession(`error: ${err.message}`);
         });
     }
 
@@ -246,16 +255,35 @@ function processMessage(client, packet) {
             }
             break;
 
+        case 'SET_AUTO_PLAY':
+            if (client.room) {
+                client.room.handleAutoPlayToggle(client, !!payload.enabled);
+            }
+            break;
+
+        case 'REJOIN_ROOM':
+            if (payload.roomCode && payload.color) {
+                const rejoined = roomManager.rejoinRoom(client, payload.roomCode, payload.color);
+                if (!rejoined) {
+                    client.send('NOTICE', { message: `ম্যাচ #${payload.roomCode} খুঁজে পাওয়া যায়নি অথবা শেষ হয়ে গেছে।` });
+                }
+            }
+            break;
+
         case 'PING':
             client.send('PONG', { time: Date.now() });
             break;
     }
 }
 
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`=================================================`);
-    console.log(`  Ludo X BD Authoritative Node.js Server`);
-    console.log(`  Port: ${PORT}`);
-    console.log(`  Health Check: http://localhost:${PORT}/health`);
-    console.log(`=================================================`);
-});
+if (require.main === module) {
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`=================================================`);
+        console.log(`  Ludo X BD Authoritative Node.js Server`);
+        console.log(`  Port: ${PORT}`);
+        console.log(`  Health Check: http://localhost:${PORT}/health`);
+        console.log(`=================================================`);
+    });
+}
+
+module.exports = { server, roomManager, clients };

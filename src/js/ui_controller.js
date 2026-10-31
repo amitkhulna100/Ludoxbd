@@ -533,6 +533,23 @@ class LudoUIController {
                 if (now - lastPodTap < 280) return;
                 lastPodTap = now;
                 if (e && e.cancelable) e.preventDefault();
+
+                // IN ONLINE MULTIPLAYER:
+                if (window.networkManager && window.networkManager.isOnlineMatch) {
+                    // Strictly prevent touching any other player's pod or dice!
+                    if (color !== window.networkManager.myColor) {
+                        return;
+                    }
+                    // In online match, tapping your own pod/dice only rolls the dice during WAITING_ROLL.
+                    // It MUST NEVER execute moves during SELECTING_TOKEN (moves must be tapped on the board)!
+                    const player = this.engine.getCurrentPlayer();
+                    if (player.id === color && this.engine.state === 'WAITING_ROLL') {
+                        this.executeRoll();
+                    }
+                    return;
+                }
+
+                // OFFLINE PASS & PLAY / VS COMPUTER:
                 const player = this.engine.getCurrentPlayer();
                 if (player.id === color && player.type === 'human') {
                     if (this.engine.state === 'WAITING_ROLL') {
@@ -595,6 +612,9 @@ class LudoUIController {
             const diceBox = document.getElementById(`dice_box_${color}`);
             if (diceBox) {
                 bindFastTap(diceBox, () => {
+                    if (window.networkManager && window.networkManager.isOnlineMatch) {
+                        if (color !== window.networkManager.myColor) return;
+                    }
                     const curPlayer = this.engine ? this.engine.getCurrentPlayer() : null;
                     if (curPlayer && curPlayer.id === color && curPlayer.type === 'human' && this.engine.state === 'WAITING_ROLL') {
                         this.executeRoll();
@@ -3042,6 +3062,25 @@ class LudoUIController {
         const moveRes = this.engine.moveToken(tokenId, 0, isOnline, authoritativeData);
         if (!moveRes) return;
 
+        // Authoritative Full Board State Self-Healing Reconciliation
+        if (authoritativeData && Array.isArray(authoritativeData.boardSnapshot) && this.engine && this.engine.players) {
+            authoritativeData.boardSnapshot.forEach(savedP => {
+                const liveP = this.engine.players.find(p => p.id === savedP.id);
+                if (liveP && Array.isArray(savedP.tokens)) {
+                    if (savedP.finishedTokens !== undefined) liveP.finishedTokens = savedP.finishedTokens;
+                    savedP.tokens.forEach(savedT => {
+                        const liveT = liveP.tokens.find(t => t.id === savedT.id);
+                        if (liveT) {
+                            liveT.state = savedT.state;
+                            liveT.stepCount = (savedT.stepCount !== undefined ? savedT.stepCount : (savedT.step || 0));
+                            liveT.trackIndex = savedT.trackIndex;
+                            if (savedT.hasShield !== undefined) liveT.hasShield = !!savedT.hasShield;
+                        }
+                    });
+                }
+            });
+        }
+
         window.soundFX.playMove();
         window.soundFX.vibrate(25);
 
@@ -3122,14 +3161,14 @@ class LudoUIController {
                 if (!fromRemote || isBot) {
                     window.networkManager.passTurnToNext(player.id);
                 } else {
-                    // Remote player safety timeout: If remote peer does not pass turn within 500ms after move animation finishes,
+                    // Remote player safety timeout: If remote peer does not pass turn within 1500ms after move animation finishes,
                     // advance deterministically on all clients so the board never hangs!
                     setTimeout(() => {
                         if (window.networkManager && window.networkManager.isOnlineMatch && window.networkManager.currentTurnColor === player.id) {
                             console.log(`[Turn Fallback] Remote player ${player.id} finished animation but did not pass turn. Advancing turn...`);
                             window.networkManager.passTurnToNext(player.id);
                         }
-                    }, 500);
+                    }, 1500);
                 }
             }
 

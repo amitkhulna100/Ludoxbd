@@ -90,7 +90,23 @@ class NetworkManager {
             hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
             hash |= 0;
         }
-        return (Math.abs(hash) % 6) + 1;
+        let roll = (Math.abs(hash) % 6) + 1;
+
+        // Respect Rule 4 Immunity: If 4 or 2 lands on an opponent, roll something else!
+        const ui = this.getUI();
+        if (ui && ui.engine && typeof ui.engine.getForbiddenImmunityDiceValues === 'function') {
+            const curP = ui.engine.getCurrentPlayer();
+            const forbidden = ui.engine.getForbiddenImmunityDiceValues(curP);
+            let attempts = 0;
+            while (forbidden.includes(roll) && attempts < 6) {
+                hash = ((hash << 5) - hash) + 31;
+                hash |= 0;
+                roll = (Math.abs(hash) % 6) + 1;
+                attempts++;
+            }
+        }
+
+        return roll;
     }
 
     isActiveHost() {
@@ -146,13 +162,13 @@ class NetworkManager {
             const curTurn = this.currentTurnColor;
             if (!curTurn) return;
 
-            // Instant peer heartbeat/silence check (> 7s silence converts remote player to bot)
+            // Instant peer heartbeat/silence check (> 20s silence converts remote player to bot, never interrupts 15s human turn)
             if (this.peerLastSeen && this.players) {
                 const now = Date.now();
                 this.players.forEach(p => {
                     if (p.color && p.color !== this.myColor && !this.botColors.includes(p.color)) {
                         const lastSeen = this.peerLastSeen[p.color] || 0;
-                        if (lastSeen > 0 && (now - lastSeen) > 7000) {
+                        if (lastSeen > 0 && (now - lastSeen) > 20000) {
                             console.warn(`[Peer Inactive] Peer ${p.color} silent for ${now - lastSeen}ms. Converting to Bot...`);
                             this.convertPlayerToBot(p.color, p.name);
                         }
@@ -2672,6 +2688,26 @@ class NetworkManager {
             outcome = ui.engine.peekMoveOutcome(tokenId);
         }
 
+        // Build authoritative board snapshot for self-healing multi-device reconciliation
+        let boardSnapshot = null;
+        if (ui && ui.engine && ui.engine.players && outcome) {
+            boardSnapshot = ui.engine.players.map(p => ({
+                id: p.id,
+                finishedTokens: p.finishedTokens,
+                tokens: p.tokens.map(t => {
+                    const isMovingToken = (p.id === moveColor && t.id === tokenId);
+                    const isCutToken = (outcome.cutTokens && outcome.cutTokens.some(ct => ct.player === p.id && ct.token === t.id));
+                    return {
+                        id: t.id,
+                        state: isMovingToken ? outcome.targetState : (isCutToken ? 'YARD' : t.state),
+                        stepCount: isMovingToken ? outcome.targetStepCount : (isCutToken ? 0 : t.stepCount),
+                        trackIndex: isMovingToken ? outcome.trackIndex : (isCutToken ? -1 : t.trackIndex),
+                        hasShield: isMovingToken ? !!t.hasShield : (isCutToken ? false : !!t.hasShield)
+                    };
+                })
+            }));
+        }
+
         const movePayload = {
             color: moveColor,
             tokenId: tokenId,
@@ -2681,8 +2717,10 @@ class NetworkManager {
             trackIndex: outcome ? outcome.trackIndex : -1,
             cutOccurred: outcome ? outcome.cutOccurred : false,
             cutTokenInfo: outcome ? outcome.cutTokenInfo : null,
+            cutTokens: outcome ? (outcome.cutTokens || []) : [],
             tokenFinished: outcome ? outcome.tokenFinished : false,
-            bonusTurn: outcome ? outcome.bonusTurn : (diceVal === 6)
+            bonusTurn: outcome ? outcome.bonusTurn : (diceVal === 6),
+            boardSnapshot: boardSnapshot
         };
 
         // Broadcast authoritative token move to peers with full destination and cut info

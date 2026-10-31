@@ -97,6 +97,70 @@ class LudoGameEngine {
      * @returns {number[]} Array of unique dice values (e.g. [2, 5]) that achieve a cut.
      */
     /**
+     * Rule 4 (Refined): Check if an opponent token is at distance 4 or 2 in front of any track token.
+     * When an opponent is at distance 4 or 2, the dice generator MUST NEVER roll 4 or 2!
+     * "খেলায় প্রতিপক্ষের গুটি যদি ৪ অথবা ২ ঘর সামনে থাকে... ডাইসে ৪ অথবা ২ পড়বেই না। ৪ অথবা ২ বাদে দাম পড়বে।"
+     */
+    getForbiddenImmunityDiceValues(player) {
+        if (!player || !player.tokens) return [];
+        const forbidden = new Set();
+        const pData = BOARD_DATA.PLAYERS[player.id.toUpperCase()];
+        if (!pData) return [];
+
+        player.tokens.forEach(token => {
+            if (token.state !== 'TRACK') return;
+
+            [4, 2].forEach(dist => {
+                const targetStep = token.stepCount + dist;
+                if (targetStep < 51) {
+                    const targetTrackIdx = (pData.startIndex + targetStep) % 52;
+                    if (!BOARD_DATA.isSafeIndex(targetTrackIdx)) {
+                        for (const otherPlayer of this.players) {
+                            if (otherPlayer.id === player.id) continue;
+                            if (this.mode === 'TEAM_2V2' && !this.friendlyKill && this.isTeammate(player.id, otherPlayer.id)) continue;
+
+                            const oppTokens = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === targetTrackIdx && !t.hasShield);
+                            if (oppTokens.length > 0) {
+                                forbidden.add(dist);
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // TEAM_2V2 Partner Assistance
+        if (this.mode === 'TEAM_2V2' && player.finishedTokens === 4) {
+            const teammate = this.players.find(p => p.id !== player.id && this.isTeammate(player.id, p.id));
+            if (teammate && teammate.finishedTokens < 4) {
+                const tmData = BOARD_DATA.PLAYERS[teammate.id.toUpperCase()];
+                if (tmData) {
+                    teammate.tokens.forEach(token => {
+                        if (token.state !== 'TRACK') return;
+                        [4, 2].forEach(dist => {
+                            const targetStep = token.stepCount + dist;
+                            if (targetStep < 51) {
+                                const targetTrackIdx = (tmData.startIndex + targetStep) % 52;
+                                if (!BOARD_DATA.isSafeIndex(targetTrackIdx)) {
+                                    for (const otherPlayer of this.players) {
+                                        if (this.isTeammate(player.id, otherPlayer.id)) continue;
+                                        const oppTokens = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === targetTrackIdx && !t.hasShield);
+                                        if (oppTokens.length > 0) {
+                                            forbidden.add(dist);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
+            }
+        }
+
+        return Array.from(forbidden);
+    }
+
+    /**
      * Determines which dice roll values (1..6) would allow the player to land on
      * and capture an unprotected opponent token on the common track.
      * Respects Bug Fix 2 (Joint Tokens require 2 pawns) and Rule 4 (Immunity at Distance 4 & 2).
@@ -198,19 +262,20 @@ class LudoGameEngine {
         if (player.captureAttempts === undefined) player.captureAttempts = 0;
 
         const cuttingValues = this.getCuttingDiceValues(player);
+        const forbiddenValues = this.getForbiddenImmunityDiceValues(player);
         const hasCutOpportunity = (cuttingValues && cuttingValues.length > 0);
 
         let chosenDice = null;
 
         // Rule 3: Distance 5 is 100% guaranteed capture on the VERY FIRST roll
         // "যদি কখোনো কারো গুটি ৫ এ চান্স দিয়ে রাখে। ৫ এ কেউ চান্স দিলে সেই গুটি ১০০% প্রথম দামেই খাওয়া যাবে।"
-        if (hasCutOpportunity && cuttingValues.includes(5)) {
+        if (hasCutOpportunity && cuttingValues.includes(5) && !forbiddenValues.includes(5)) {
             chosenDice = 5;
             player.captureAttempts = 0;
         }
         // Rule 2: Guaranteed 6 within 5 rolls (on 5th roll without 6, or sooner)
         // "প্রতি ৫ দামের ভিতর ছয় একবার পড়বেই। ২ বার ও পড়তে পারে। কিন্তু ৫ দামের ভিতর ১ বার ৬ পরবেই।"
-        else if (player.rollsWithoutSix >= 4) {
+        else if (player.rollsWithoutSix >= 4 && !forbiddenValues.includes(6)) {
             chosenDice = 6;
             player.rollsWithoutSix = 0;
             if (hasCutOpportunity && cuttingValues.includes(6)) {
@@ -237,23 +302,38 @@ class LudoGameEngine {
                 shouldCut = (Math.random() < 0.35);
             }
 
-            if (shouldCut) {
-                chosenDice = cuttingValues[Math.floor(Math.random() * cuttingValues.length)];
+            const allowedCutting = cuttingValues.filter(val => !forbiddenValues.includes(val));
+
+            if (shouldCut && allowedCutting.length > 0) {
+                chosenDice = allowedCutting[Math.floor(Math.random() * allowedCutting.length)];
                 player.captureAttempts = 0;
             } else {
-                // Pick a non-cutting roll
-                const nonCuttingValues = [1, 2, 3, 4, 5, 6].filter(val => !cuttingValues.includes(val));
-                if (nonCuttingValues.length > 0) {
-                    chosenDice = nonCuttingValues[Math.floor(Math.random() * nonCuttingValues.length)];
+                // Pick a non-cutting roll that is also NOT forbidden
+                const allowedNonCutting = [1, 2, 3, 4, 5, 6].filter(val => !cuttingValues.includes(val) && !forbiddenValues.includes(val));
+                if (allowedNonCutting.length > 0) {
+                    chosenDice = allowedNonCutting[Math.floor(Math.random() * allowedNonCutting.length)];
                 } else {
-                    chosenDice = Math.floor(Math.random() * 6) + 1;
+                    const fallbackPool = [1, 2, 3, 4, 5, 6].filter(val => !forbiddenValues.includes(val));
+                    chosenDice = fallbackPool.length > 0 ? fallbackPool[Math.floor(Math.random() * fallbackPool.length)] : (Math.floor(Math.random() * 6) + 1);
                 }
             }
         }
-        // Standard fair roll
+        // Standard fair roll - must strictly avoid forbidden 4 or 2 if opponent is at that distance!
         else {
             player.captureAttempts = 0;
-            chosenDice = Math.floor(Math.random() * 6) + 1;
+            const allowedStandard = [1, 2, 3, 4, 5, 6].filter(val => !forbiddenValues.includes(val));
+            chosenDice = allowedStandard.length > 0 
+                ? allowedStandard[Math.floor(Math.random() * allowedStandard.length)] 
+                : (Math.floor(Math.random() * 6) + 1);
+        }
+
+        // Hard safety guarantee: chosenDice must NEVER be in forbiddenValues (4 or 2) when opponent is at that distance!
+        // "আসলে তখন ডাইসে ৪ অথবা ২ পড়বেই না। ৪ অথবা ২ বাদে দাম পড়বে।"
+        if (forbiddenValues.includes(chosenDice)) {
+            const safeRolls = [1, 2, 3, 4, 5, 6].filter(val => !forbiddenValues.includes(val));
+            if (safeRolls.length > 0) {
+                chosenDice = safeRolls[Math.floor(Math.random() * safeRolls.length)];
+            }
         }
 
         // Update rollsWithoutSix tracker
@@ -484,31 +564,32 @@ class LudoGameEngine {
         }
 
         // Collision check if target is on common track
+        let cutTokensList = [];
         if (targetState === 'TRACK') {
             const isSafe = BOARD_DATA.isSafeIndex(trackIndex);
             if (!isSafe) {
-                const isImmuneDistance = (this.diceValue === 4 || this.diceValue === 2);
-                if (!isImmuneDistance) {
-                    const attackerTokensOnSquare = ownerPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === trackIndex && t.id !== token.id);
-                    const attackerCount = attackerTokensOnSquare.length + 1;
+                const attackerTokensOnSquare = ownerPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === trackIndex && t.id !== token.id);
+                const attackerCount = attackerTokensOnSquare.length + 1;
 
-                    for (const otherPlayer of this.players) {
-                        if (otherPlayer.id === ownerId) continue;
-                        if (this.mode === 'TEAM_2V2' && !this.friendlyKill && this.isTeammate(ownerId, otherPlayer.id)) continue;
+                for (const otherPlayer of this.players) {
+                    if (otherPlayer.id === ownerId) continue;
+                    if (this.mode === 'TEAM_2V2' && !this.friendlyKill && this.isTeammate(ownerId, otherPlayer.id)) continue;
 
-                        const oppTokens = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === trackIndex);
-                        if (oppTokens.length === 0) continue;
+                    const oppTokens = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === trackIndex);
+                    if (oppTokens.length === 0) continue;
 
-                        // Joint pair check: 1 attacker token cannot cut joint pair
-                        if (oppTokens.length >= 2 && attackerCount < 2) continue;
+                    // Joint pair check: 1 attacker token cannot cut joint pair
+                    if (oppTokens.length >= 2 && attackerCount < 2) continue;
 
-                        const victim = oppTokens[0];
+                    oppTokens.forEach(victim => {
                         if (!victim.hasShield) {
                             cutOccurred = true;
-                            cutTokenInfo = { player: otherPlayer.id, token: victim.id };
-                            break;
+                            cutTokensList.push({ player: otherPlayer.id, token: victim.id });
                         }
-                    }
+                    });
+                }
+                if (cutTokensList.length > 0) {
+                    cutTokenInfo = cutTokensList[0];
                 }
             }
         }
@@ -524,6 +605,7 @@ class LudoGameEngine {
             trackIndex,
             cutOccurred,
             cutTokenInfo,
+            cutTokens: cutTokensList,
             tokenFinished,
             bonusTurn
         };
@@ -559,17 +641,23 @@ class LudoGameEngine {
 
             let cutOccurred = false;
             let cutTokenInfo = null;
-            if (authoritativeData.cutOccurred && authoritativeData.cutTokenInfo) {
-                const victimPlayer = this.players.find(p => p.id === authoritativeData.cutTokenInfo.player);
-                const victimToken = victimPlayer?.tokens?.find(t => t.id === authoritativeData.cutTokenInfo.token);
-                if (victimToken) {
-                    victimToken.state = 'YARD';
-                    victimToken.trackIndex = -1;
-                    victimToken.stepCount = 0;
-                    victimToken.homeStretchRolls = 0;
-                    cutOccurred = true;
-                    cutTokenInfo = authoritativeData.cutTokenInfo;
-                }
+            if (authoritativeData.cutOccurred) {
+                const victims = (Array.isArray(authoritativeData.cutTokens) && authoritativeData.cutTokens.length > 0)
+                    ? authoritativeData.cutTokens
+                    : (authoritativeData.cutTokenInfo ? [authoritativeData.cutTokenInfo] : []);
+
+                victims.forEach(v => {
+                    const victimPlayer = this.players.find(p => p.id === v.player);
+                    const victimToken = victimPlayer?.tokens?.find(t => t.id === v.token);
+                    if (victimToken) {
+                        victimToken.state = 'YARD';
+                        victimToken.trackIndex = -1;
+                        victimToken.stepCount = 0;
+                        victimToken.homeStretchRolls = 0;
+                        cutOccurred = true;
+                    }
+                });
+                cutTokenInfo = authoritativeData.cutTokenInfo || (victims[0] || null);
             }
 
             const bonusTurn = (authoritativeData.bonusTurn !== undefined)
@@ -671,46 +759,40 @@ class LudoGameEngine {
         if (token.state === 'TRACK') {
             const isSafe = BOARD_DATA.isSafeIndex(token.trackIndex);
             if (!isSafe) {
-                // Rule 4: Distance 4 and 2 NEVER cut!
-                // "যদি কখনো কেউ গুটি ৪ অথবা ২ তে চান্স দিয়ে রাখে। সেই গুটি কখনো খাওয়া যাবে না।টোটাল গেমের ভিতর ৪অথবা২ তে খাওয়ার অপশন থাকলে কখনোই খাওয়া যাবে না।"
-                const isImmuneDistance = (this.diceValue === 4 || this.diceValue === 2);
+                // Count how many tokens current player (attacker) has on this trackIndex
+                const attackerTokensOnSquare = ownerPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === token.trackIndex);
+                const attackerCount = attackerTokensOnSquare.length;
 
-                if (!isImmuneDistance) {
-                    // Count how many tokens current player (attacker) has on this trackIndex
-                    const attackerTokensOnSquare = ownerPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === token.trackIndex);
-                    const attackerCount = attackerTokensOnSquare.length;
+                // Check other players' tokens on this trackIndex
+                this.players.forEach(otherPlayer => {
+                    if (otherPlayer.id === ownerId) return; // don't cut own tokens
+                    if (this.mode === 'TEAM_2V2' && !this.friendlyKill && this.isTeammate(ownerId, otherPlayer.id)) return; // don't cut teammate!
 
-                    // Check other players' tokens on this trackIndex
-                    this.players.forEach(otherPlayer => {
-                        if (otherPlayer.id === ownerId) return; // don't cut own tokens
-                        if (this.mode === 'TEAM_2V2' && !this.friendlyKill && this.isTeammate(ownerId, otherPlayer.id)) return; // don't cut teammate!
+                    const opponentTokensOnSquare = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === token.trackIndex);
+                    if (opponentTokensOnSquare.length === 0) return;
 
-                        const opponentTokensOnSquare = otherPlayer.tokens.filter(t => t.state === 'TRACK' && t.trackIndex === token.trackIndex);
-                        if (opponentTokensOnSquare.length === 0) return;
+                    // Bug Fix 2: Joint pair check (জোড় গুটি)
+                    // "যে কোনো জোড় গুটি, ১টা গুটি দিয়েই জোড়া ২টা খাওয়া যাচ্ছে, জোড়া খেতে গেলে ২ টা গুটি দিয়েই খেতে হবে।"
+                    if (opponentTokensOnSquare.length >= 2 && attackerCount < 2) {
+                        // 1 attacker token cannot cut opponent joint pair!
+                        return;
+                    }
 
-                        // Bug Fix 2: Joint pair check (জোড় গুটি)
-                        // "যে কোনো জোড় গুটি, ১টা গুটি দিয়েই জোড়া ২টা খাওয়া যাচ্ছে, জোড়া খেতে গেলে ২ টা গুটি দিয়েই খেতে হবে।"
-                        if (opponentTokensOnSquare.length >= 2 && attackerCount < 2) {
-                            // 1 attacker token cannot cut opponent joint pair!
-                            return;
+                    opponentTokensOnSquare.forEach(otherToken => {
+                        if (otherToken.hasShield) {
+                            // Shield protects token once!
+                            otherToken.hasShield = false;
+                        } else {
+                            // Cut opponent token!
+                            otherToken.state = 'YARD';
+                            otherToken.trackIndex = -1;
+                            otherToken.stepCount = 0;
+                            otherToken.homeStretchRolls = 0;
+                            cutOccurred = true;
+                            cutTokenInfo = { player: otherPlayer.id, token: otherToken.id };
                         }
-
-                        opponentTokensOnSquare.forEach(otherToken => {
-                            if (otherToken.hasShield) {
-                                // Shield protects token once!
-                                otherToken.hasShield = false;
-                            } else {
-                                // Cut opponent token!
-                                otherToken.state = 'YARD';
-                                otherToken.trackIndex = -1;
-                                otherToken.stepCount = 0;
-                                otherToken.homeStretchRolls = 0;
-                                cutOccurred = true;
-                                cutTokenInfo = { player: otherPlayer.id, token: otherToken.id };
-                            }
-                        });
                     });
-                }
+                });
             }
         }
 

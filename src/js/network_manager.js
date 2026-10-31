@@ -81,11 +81,11 @@ class NetworkManager {
 
         // Default Arenas (20-Second Matchmaking Timer)
         this.boards = [
-            { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 1000, winPrize: 3600, icon: '🏛️', waitingCount: 1, remainingSeconds: 20 },
-            { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 2000, winPrize: 7200, icon: '👑', waitingCount: 0, remainingSeconds: 20 },
-            { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 5000, winPrize: 18000, icon: '⚡', waitingCount: 0, remainingSeconds: 20 },
-            { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 10000, winPrize: 36000, icon: '🏖️', waitingCount: 0, remainingSeconds: 20 },
-            { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 25000, winPrize: 90000, icon: '🚄', waitingCount: 0, remainingSeconds: 20 }
+            { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '🏛️', waitingCount: 1, remainingSeconds: 20 },
+            { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '👑', waitingCount: 0, remainingSeconds: 20 },
+            { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '⚡', waitingCount: 0, remainingSeconds: 20 },
+            { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '🏖️', waitingCount: 0, remainingSeconds: 20 },
+            { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '🚄', waitingCount: 0, remainingSeconds: 20 }
         ];
 
         this.init();
@@ -169,6 +169,7 @@ class NetworkManager {
      * Evaluates whether local player is the designated leader for executing/broadcasting bot turns
      */
     isCurrentBotLeader() {
+        if (this.isAuthoritativeServerConnected()) return false;
         const activeHumans = this.getActiveConnectedHumans();
         return activeHumans.length > 0 && activeHumans[0] === this.myColor;
     }
@@ -541,7 +542,7 @@ class NetworkManager {
                 this.isHost = false;
                 this.myColor = payload.myColor;
                 this.closeWaitingRoom();
-                this.applySynchronizedState(payload.snapshot);
+                this.handleAuthoritativeMatchRejoined(payload);
                 this.showToast('🎉 ম্যাচে সফলভাবে পুনরায় সংযুক্ত হয়েছেন!');
                 break;
 
@@ -1297,8 +1298,8 @@ class NetworkManager {
     /**
      * Deduct entry fee idempotently and sync with Supabase
      */
-    deductEntryFee(roomCode, feeAmount = 500) {
-        const fee = (feeAmount !== undefined && feeAmount !== null) ? feeAmount : 500;
+    deductEntryFee(roomCode, feeAmount = 1000) {
+        const fee = (feeAmount !== undefined && feeAmount !== null) ? feeAmount : 1000;
         if (fee <= 0) return true;
         const feeTxKey = `lx_fee_${roomCode}`;
         if (localStorage.getItem(feeTxKey)) {
@@ -2271,6 +2272,14 @@ class NetworkManager {
             return;
         }
 
+        // Authoritative Cloud Server Mode: Queue rejoin action until socket finishes opening
+        this._pendingServerAction = {
+            type: 'REJOIN_ROOM',
+            payload: { roomCode: session.roomCode, color: session.myColor || this.myColor }
+        };
+        this.showToast('সার্ভারে সংযোগ হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন');
+        return;
+
         // 2. Restore session parameters
         this.isOnlineMatch = true;
         this.currentRoom = session;
@@ -2404,6 +2413,99 @@ class NetworkManager {
         this.showToast('🚪 আপনি ম্যাচটি পরিত্যাগ করেছেন।');
     }
 
+    handleAuthoritativeMatchRejoined(payload) {
+        const ui = this.getUI();
+        if (!ui) return;
+
+        console.log(`[Authoritative Rejoin] Processing match #${payload.roomCode}...`);
+        this.isOnlineMatch = true;
+        this.isHost = false;
+        this.myColor = payload.myColor || this.myColor || 'red';
+        this.currentRoom = {
+            roomCode: payload.roomCode,
+            boardId: payload.boardId,
+            myColor: this.myColor,
+            entryFee: 1000
+        };
+
+        // 1. Close all modals and overlays
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            m.classList.remove('active');
+            m.style.display = 'none';
+        });
+
+        // 2. Hide home screen, show stage and canvas
+        const homeScreen = document.getElementById('homeScreen');
+        if (homeScreen) {
+            homeScreen.classList.remove('active');
+            homeScreen.style.display = 'none';
+        }
+        document.querySelectorAll('.in-game-only').forEach(el => el.style.display = 'flex');
+        const hud = document.getElementById('onlineMatchLiveHud');
+        if (hud) hud.style.display = 'flex';
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll?.('.online-match-only')?.forEach(el => el.style.display = 'inline-flex');
+            document.body?.classList?.add('online-match-active');
+        }
+
+        // 3. Extract player info from snapshot
+        const snap = payload.snapshot || {};
+        const snapPlayers = snap.players || [];
+        this.matchPlayers = snapPlayers;
+        this.botColors = snapPlayers.filter(p => p.isBot).map(p => p.color);
+
+        const customNames = {};
+        const playerTypes = {};
+        snapPlayers.forEach(p => {
+            if (p.isBot) {
+                customNames[p.color] = p.name;
+                playerTypes[p.color] = 'ai';
+            } else if (p.color === this.myColor) {
+                customNames[p.color] = `${p.name} (You) 🇧🇩`;
+                playerTypes[p.color] = 'human';
+            } else {
+                customNames[p.color] = `${p.name} 🌐`;
+                playerTypes[p.color] = 'human';
+            }
+        });
+
+        const activeColors = ['red', 'green', 'yellow', 'blue'];
+        const boardTitle = payload.boardId || 'ঢাকা এরিনা';
+        const modeTitle = `⚡ ${boardTitle} (চলমান ম্যাচ)`;
+
+        // Launch game engine if not active or not in online mode
+        if (!ui.engine || ui.engine.mode !== 'CLASSIC' || ui.lastGameConfig?.vsType !== 'online') {
+            try {
+                if (typeof ui.launchGameWithMode === 'function') {
+                    ui.launchGameWithMode('CLASSIC', 'online', modeTitle, 4, customNames, false, activeColors, playerTypes);
+                }
+            } catch (e) {
+                console.error('[Authoritative Rejoin] Game launch error:', e);
+            }
+        }
+
+        if (typeof ui.initCanvasSize === 'function') ui.initCanvasSize();
+
+        // 4. Apply authoritative synchronized snapshot to local engine
+        this.applySynchronizedState(snap);
+
+        // 5. Restore active turn and stage
+        const curTurn = payload.currentTurn || snap.currentTurn || 'red';
+        this.currentTurnColor = curTurn;
+        const isMoveStage = (payload.stage === 'MOVE' || snap.state === 'SELECTING_TOKEN');
+
+        if (isMoveStage) {
+            const deadline = Date.now() + (payload.remainingDeadlineMs || 15000);
+            this.startStageBTokenMove(curTurn, ++this.currentTurnSeq, deadline);
+        } else {
+            this.handleTurnChanged(curTurn);
+        }
+
+        this.startHeartbeat();
+        this.startMatchWatchdog();
+        if (typeof ui.render === 'function') ui.render();
+    }
+
     applySynchronizedState(stateData) {
         if (!stateData) return;
         const ui = this.getUI();
@@ -2429,10 +2531,10 @@ class NetworkManager {
         }
 
         // Restore token coordinates & status
-        const tokenList = stateData.tokens || stateData.playersTokens;
+        const tokenList = stateData.players || stateData.tokens || stateData.playersTokens;
         if (Array.isArray(tokenList)) {
             tokenList.forEach(savedP => {
-                const liveP = ui.engine.players.find(p => p.id === savedP.id);
+                const liveP = ui.engine.players.find(p => p.id === savedP.color || p.id === savedP.id);
                 if (liveP && Array.isArray(savedP.tokens)) {
                     if (savedP.finishedTokens !== undefined) liveP.finishedTokens = savedP.finishedTokens;
                     if (savedP.rank !== undefined) liveP.rank = savedP.rank;
@@ -2453,9 +2555,10 @@ class NetworkManager {
         }
 
         // Restore active turn color & turn index
-        if (stateData.currentTurnColor) {
-            this.currentTurnColor = stateData.currentTurnColor;
-            const turnIdx = ui.engine.players.findIndex(p => p.id === stateData.currentTurnColor);
+        const activeTurnColor = stateData.currentTurn || stateData.currentTurnColor;
+        if (activeTurnColor) {
+            this.currentTurnColor = activeTurnColor;
+            const turnIdx = ui.engine.players.findIndex(p => p.id === activeTurnColor);
             if (turnIdx !== -1) {
                 ui.engine.currentTurnIndex = turnIdx;
             }
@@ -2465,10 +2568,11 @@ class NetworkManager {
         }
 
         const isMyTurn = (this.currentTurnColor === this.myColor);
+        const isMoveStage = (stateData.stage === 'MOVE' || stateData.currentTurnStage === 'MOVE' || stateData.state === 'SELECTING_TOKEN');
 
         // Restore stage & dice state
-        if (stateData.currentTurnStage === 'MOVE') {
-            const dice = stateData.lastDiceValue || stateData.dice || 0;
+        if (isMoveStage) {
+            const dice = stateData.diceValue || stateData.lastDiceValue || stateData.dice || 0;
             this.lastDiceValue = dice;
             ui.engine.diceValue = dice;
             ui.engine.state = 'SELECTING_TOKEN';
@@ -2793,7 +2897,7 @@ class NetworkManager {
 
         // Deduct entry fee idempotently and sync with Supabase
         if (matchData.roomCode) {
-            this.deductEntryFee(matchData.roomCode, matchData.entryFee || 500);
+            this.deductEntryFee(matchData.roomCode, matchData.entryFee || 1000);
             if (window.supabaseClient) {
                 window.supabaseClient.request('/rest/v1/match_history', {
                     method: 'POST',
@@ -3156,9 +3260,12 @@ class NetworkManager {
     // -------------------------------------------------------------
     handleTurnChanged(nextTurnColor) {
         if (!nextTurnColor) return;
-        // Ignore duplicate rapid TURN_CHANGED events for the exact same active roll turn
-        if (this.currentTurnColor === nextTurnColor && this.currentTurnStage === 'ROLL' && (Date.now() - (this._lastTurnActivityTimestamp || 0)) < 1200) {
-            return;
+        // In Authoritative Server Mode, always accept server-directed turn changes.
+        // For legacy peer-to-peer fallback, ignore duplicate rapid TURN_CHANGED events for the exact same active roll turn.
+        if (!this.isAuthoritativeServerConnected()) {
+            if (this.currentTurnColor === nextTurnColor && this.currentTurnStage === 'ROLL' && (Date.now() - (this._lastTurnActivityTimestamp || 0)) < 1200) {
+                return;
+            }
         }
 
         const ui = this.getUI();
@@ -3172,6 +3279,8 @@ class NetworkManager {
         }
 
         this.currentTurnColor = nextTurnColor;
+        this.currentTurnStage = 'ROLL';
+        this.stageActionExecuted = false;
         this._lastTurnActivityTimestamp = Date.now();
         this.isRolling = false;
         const isMyTurn = (nextTurnColor === this.myColor);
@@ -3223,12 +3332,14 @@ class NetworkManager {
         // Start Stage A: 15-Second Dice Roll Timer
         this.startStageADiceRoll(nextTurnColor, ++this.currentTurnSeq);
 
-        // Serverless deterministic bot turns: runs identically on all clients without host dependency!
+        // Serverless deterministic bot turns: only for legacy peer-to-peer (Render executes bots authoritatively)
         if (isBotTurn) {
             if (this.botRollTimeout) clearTimeout(this.botRollTimeout);
-            this.botRollTimeout = setTimeout(() => {
-                this.executeDeterministicBotTurn(nextTurnColor);
-            }, 750);
+            if (!this.isAuthoritativeServerConnected()) {
+                this.botRollTimeout = setTimeout(() => {
+                    this.executeDeterministicBotTurn(nextTurnColor);
+                }, 750);
+            }
         }
     }
 
@@ -3277,6 +3388,7 @@ class NetworkManager {
      * Authoritative Deterministic Auto-Roll on Stage A Timeout (Preserves bonus turns & moves)
      */
     executeAutoRoll(color, turnSeq) {
+        if (this.isAuthoritativeServerConnected()) return;
         if (!this.isOnlineMatch || this.stageActionExecuted) return;
         if (turnSeq && this.currentTurnSeq !== turnSeq) return;
         this.stageActionExecuted = true;
@@ -3352,6 +3464,7 @@ class NetworkManager {
      * Authoritative Deterministic Auto-Move on Stage B Timeout
      */
     executeAutoMove(color, turnSeq) {
+        if (this.isAuthoritativeServerConnected()) return;
         if (!this.isOnlineMatch || this.stageActionExecuted) return;
         if (turnSeq && this.currentTurnSeq !== turnSeq) return;
         this.stageActionExecuted = true;
@@ -3551,6 +3664,7 @@ class NetworkManager {
     }
 
     executeDeterministicBotTurn(botColor) {
+        if (this.isAuthoritativeServerConnected()) return;
         if (!this.isOnlineMatch || this.currentTurnColor !== botColor) return;
         this._lastTurnActivityTimestamp = Date.now();
         const ui = this.getUI();
@@ -3584,6 +3698,7 @@ class NetworkManager {
     }
 
     passTurnToNext(fromColor) {
+        if (this.isAuthoritativeServerConnected()) return;
         if (!this.isOnlineMatch) return;
         const ui = this.getUI();
         let nextColor;

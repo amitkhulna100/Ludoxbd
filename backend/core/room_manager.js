@@ -6,11 +6,11 @@ const CryptoRNG = require('./crypto_rng');
 const SupabaseService = require('./supabase_service');
 
 const BOARD_DEFINITIONS = [
-    { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 1000, winPrize: 3600, icon: '🏛️' },
-    { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 2000, winPrize: 7200, icon: '👑' },
-    { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 5000, winPrize: 18000, icon: '⚡' },
-    { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 10000, winPrize: 36000, icon: '🏖️' },
-    { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 25000, winPrize: 90000, icon: '🚄' }
+    { id: 'dhaka', name: 'ঢাকা এরিনা (Dhaka Arena)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '🏛️' },
+    { id: 'chittagong', name: 'চট্টগ্রাম রয়্যালস (Chattogram)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '👑' },
+    { id: 'sylhet', name: 'সিলেট সুপার কিংস (Sylhet)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '⚡' },
+    { id: 'cox', name: 'কক্সবাজার গোল্ডেন বিচ (Cox\'s Bazar)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '🏖️' },
+    { id: 'padma', name: 'পদ্মা এক্সপ্রেস (Padma Express)', fee: 1000, winPrize: 10000, secondPrize: 5000, icon: '🚄' }
 ];
 
 const BOT_NAMES = [
@@ -383,6 +383,7 @@ class GameRoom {
             trackIndex: moveResult.trackIndex,
             tokenState: moveResult.tokenState,
             targetState: moveResult.tokenState,
+            state: moveResult.tokenState,
             cutOccurred: moveResult.cutOccurred,
             cutTokenInfo: moveResult.cutTokenInfo,
             cutTokens: moveResult.cutTokens,
@@ -606,10 +607,13 @@ class RoomManager {
     joinPublicBoard(client, boardId) {
         this.leaveAnyLobby(client);
 
-        let lobby = this.publicLobbies.get(boardId);
+        // Single Unified Public Matchmaking Queue (Dhaka Arena, 1000 coin entry fee)
+        // Ensures all searching players always join the same board!
+        const canonicalBoardId = 'dhaka';
+        let lobby = this.publicLobbies.get(canonicalBoardId);
         if (!lobby || lobby.started) {
-            lobby = new WaitingLobby(boardId, this, 4, false, null);
-            this.publicLobbies.set(boardId, lobby);
+            lobby = new WaitingLobby(canonicalBoardId, this, 4, false, null);
+            this.publicLobbies.set(canonicalBoardId, lobby);
         }
 
         const joined = lobby.addPlayer(client);
@@ -618,10 +622,10 @@ class RoomManager {
             return;
         }
 
-        console.log(`[Public Matchmaking] Player ${client.name} (${client.color}) joined ${boardId} (${lobby.players.length}/4)`);
+        console.log(`[Public Matchmaking] Player ${client.name} (${client.color}) joined ${canonicalBoardId} (${lobby.players.length}/4)`);
 
         client.send('LOBBY_JOINED', {
-            boardId: boardId,
+            boardId: canonicalBoardId,
             myColor: client.color,
             remainingSeconds: lobby.remainingSeconds,
             players: lobby.getPlayersSummary()

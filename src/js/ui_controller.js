@@ -847,10 +847,8 @@ class LudoUIController {
                 window.soundFX.playClick();
                 const modalOnline = document.getElementById('modalOnlineLobby');
                 if (modalOnline) modalOnline.classList.remove('active');
-                if (window.networkManager && window.networkManager.isConnected) {
+                if (window.networkManager) {
                     window.networkManager.requestQuickMatch(4);
-                } else {
-                    launchGameWithMode('CLASSIC', 'online_ai', 'ONLINE 4P');
                 }
             });
         }
@@ -861,13 +859,8 @@ class LudoUIController {
                 window.soundFX.playClick();
                 const modalOnline = document.getElementById('modalOnlineLobby');
                 if (modalOnline) modalOnline.classList.remove('active');
-                if (window.networkManager && window.networkManager.isConnected) {
+                if (window.networkManager) {
                     window.networkManager.requestQuickMatch(2);
-                } else {
-                    launchGameWithMode('CLASSIC', 'online_ai', 'ONLINE 1v1', 2, {
-                        red: `${this.userStats?.name || 'You'} 🇧🇩`,
-                        yellow: 'সাকিব_কিং 🇧🇩'
-                    }, false, ['red', 'yellow']);
                 }
             });
         }
@@ -3225,7 +3218,12 @@ class LudoUIController {
             window.networkManager.clearTurnTimers();
             if (window.networkManager.isAuthoritativeServerConnected()) {
                 // In Authoritative Server Mode: Render cloud server schedules bonus turn or broadcasts TURN_CHANGED!
-                // Client does not advance turns locally.
+                // Client does not advance turns locally, but MUST flush any turn change queued while token was hopping!
+                if (this.pendingTurnColor) {
+                    const nextC = this.pendingTurnColor;
+                    this.pendingTurnColor = null;
+                    window.networkManager.handleTurnChanged(nextC);
+                }
                 return;
             }
             if (moveRes.bonusTurn) {
